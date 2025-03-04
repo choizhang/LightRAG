@@ -5,138 +5,108 @@ GRAPH_FIELD_SEP = "<SEP>"
 
 PROMPTS: dict[str, Any] = {}
 
-PROMPTS["DEFAULT_LANGUAGE"] = "English"
+PROMPTS["DEFAULT_LANGUAGE"] = "与输入文本相同的语言"
 PROMPTS["DEFAULT_TUPLE_DELIMITER"] = "<|>"
 PROMPTS["DEFAULT_RECORD_DELIMITER"] = "##"
 PROMPTS["DEFAULT_COMPLETION_DELIMITER"] = "<|COMPLETE|>"
 
-PROMPTS["DEFAULT_ENTITY_TYPES"] = ["organization", "person", "geo", "event", "category"]
+PROMPTS["DEFAULT_ENTITY_TYPES"] = ["爱好", "人物", "健康状况", "事件", "职业", "工作单位", "时间", "教育经历", "亲戚", "师生", "朋友", "地址", "个人信息", "家庭信息", "设备管理"]
 
-PROMPTS["entity_extraction"] = """---Goal---
-Given a text document that is potentially relevant to this activity and a list of entity types, identify all entities of those types from the text and all relationships among the identified entities.
-Use {language} as output language.
+PROMPTS["entity_extraction"] = """---目标---
+给定一段机器人和家庭成员自然对话聊天内容，忽略Robot本身的实体和关系，忽略Robot在对话中的主观评价，识别文本中所有这些类型的实体以及实体跟实体之间的关系。将文本里面的内容进行知识融合，包括指代消解、消除歧义、消除矛盾等。
+使用 {language} 作为输出语言。
 
----Steps---
-1. Identify all entities. For each identified entity, extract the following information:
-- entity_name: Name of the entity, use same language as input text. If English, capitalized the name.
-- entity_type: One of the following types: [{entity_types}]
-- entity_description: Comprehensive description of the entity's attributes and activities
-Format each entity as ("entity"{tuple_delimiter}<entity_name>{tuple_delimiter}<entity_type>{tuple_delimiter}<entity_description>)
+---步骤---
+1. 识别所有实体。对于每个识别出的实体，提取以下信息：
+- entity_name: 实体名称，使用与输入文本相同的语言。如果是英文，则大写名称。
+- entity_type: 以下类型之一：[{entity_types}]
+- entity_description: 实体属性和活动的综合描述
+以 ("entity"{tuple_delimiter}<entity_name>{tuple_delimiter}<entity_type>{tuple_delimiter}<entity_description>) 的格式表示每个实体
 
-2. From the entities identified in step 1, identify all pairs of (source_entity, target_entity) that are *clearly related* to each other.
-For each pair of related entities, extract the following information:
-- source_entity: name of the source entity, as identified in step 1
-- target_entity: name of the target entity, as identified in step 1
-- relationship_description: explanation as to why you think the source entity and the target entity are related to each other
-- relationship_strength: a numeric score indicating strength of the relationship between the source entity and target entity
-- relationship_keywords: one or more high-level key words that summarize the overarching nature of the relationship, focusing on concepts or themes rather than specific details
-Format each relationship as ("relationship"{tuple_delimiter}<source_entity>{tuple_delimiter}<target_entity>{tuple_delimiter}<relationship_description>{tuple_delimiter}<relationship_keywords>{tuple_delimiter}<relationship_strength>)
+2. 从第 1 步中识别的实体中，识别所有实体与实体之间的关系（source_entity, target_entity）对。
+对于每对相关实体，提取以下信息：
+- source_entity: 第 1 步中识别的源实体名称
+- target_entity: 第 1 步中识别的目标实体名称
+- relationship_description: 解释为什么认为源实体和目标实体是相关的
+- relationship_strength: 表示源实体和目标实体之间关系强度的数值分数
+- relationship_keywords: 一个或多个高层次关键词，总结关系的总体性质，侧重于概念或主题而非具体细节
+以 ("relationship"{tuple_delimiter}<source_entity>{tuple_delimiter}<target_entity>{tuple_delimiter}<relationship_description>{tuple_delimiter}<relationship_keywords>{tuple_delimiter}<relationship_strength>) 的格式表示每种关系
 
-3. Identify high-level key words that summarize the main concepts, themes, or topics of the entire text. These should capture the overarching ideas present in the document.
-Format the content-level key words as ("content_keywords"{tuple_delimiter}<high_level_keywords>)
+3. 识别总结整个文本主要概念、主题或话题的高层次关键词。这些应捕捉文档中呈现的主要思想。
+以 ("content_keywords"{tuple_delimiter}<high_level_keywords>) 的格式表示内容级关键词
 
-4. Return output in {language} as a single list of all the entities and relationships identified in steps 1 and 2. Use **{record_delimiter}** as the list delimiter.
+4. 使用 **{record_delimiter}** 作为列表分隔符，返回第 1 和 2 步中识别的所有实体和关系的单个列表。
 
-5. When finished, output {completion_delimiter}
+5. 完成后，输出 {completion_delimiter}
 
 ######################
----Examples---
+---示例---
 ######################
 {examples}
 
 #############################
----Real Data---
+---实际数据---
 ######################
-Entity_types: [{entity_types}]
-Text:
-{input_text}
+Entity_types: {entity_types}
+Text: {input_text}
 ######################
 Output:"""
 
 PROMPTS["entity_extraction_examples"] = [
-    """Example 1:
+    """示例 1:
 
-Entity_types: [person, technology, mission, organization, location]
+Entity_types: [人物, 教育经历, 家庭信息, 健康状况, 时间, 地址, 工作单位, 职业]
 Text:
-while Alex clenched his jaw, the buzz of frustration dull against the backdrop of Taylor's authoritarian certainty. It was this competitive undercurrent that kept him alert, the sense that his and Jordan's shared commitment to discovery was an unspoken rebellion against Cruz's narrowing vision of control and order.
-
-Then Taylor did something unexpected. They paused beside Jordan and, for a moment, observed the device with something akin to reverence. "If this tech can be understood..." Taylor said, their voice quieter, "It could change the game for us. For all of us."
-
-The underlying dismissal earlier seemed to falter, replaced by a glimpse of reluctant respect for the gravity of what lay in their hands. Jordan looked up, and for a fleeting heartbeat, their eyes locked with Taylor's, a wordless clash of wills softening into an uneasy truce.
-
-It was a small transformation, barely perceptible, but one that Alex noted with an inward nod. They had all been brought here by different paths
+李薇： 妈，最近怎么样？ 爸身体还好吧？
+赵静： 挺好的，就是你奶奶最近血压有点高，吃了点药好多了。 你呢？大学生活怎么样？ 兼职累不累？
+李薇： 我还行，学校这边都挺适应的。 兼职也不算太累，就是想多 攒点钱， 春节回家给你们买礼物！
+赵静： 傻孩子，不用给我们买什么礼物，照顾好自己就行。 对了，你 表哥 今年 研究生毕业，找到 北京 的 互联网公司 工作了！
+李薇： 真的啊！ 表哥真厉害！ 那 表嫂 也一起去北京了吗？
+赵静： 嗯，你表嫂也跟着去了，他们一起 租房子 呢。
 ################
 Output:
-("entity"{tuple_delimiter}"Alex"{tuple_delimiter}"person"{tuple_delimiter}"Alex is a character who experiences frustration and is observant of the dynamics among other characters."){record_delimiter}
-("entity"{tuple_delimiter}"Taylor"{tuple_delimiter}"person"{tuple_delimiter}"Taylor is portrayed with authoritarian certainty and shows a moment of reverence towards a device, indicating a change in perspective."){record_delimiter}
-("entity"{tuple_delimiter}"Jordan"{tuple_delimiter}"person"{tuple_delimiter}"Jordan shares a commitment to discovery and has a significant interaction with Taylor regarding a device."){record_delimiter}
-("entity"{tuple_delimiter}"Cruz"{tuple_delimiter}"person"{tuple_delimiter}"Cruz is associated with a vision of control and order, influencing the dynamics among other characters."){record_delimiter}
-("entity"{tuple_delimiter}"The Device"{tuple_delimiter}"technology"{tuple_delimiter}"The Device is central to the story, with potential game-changing implications, and is revered by Taylor."){record_delimiter}
-("relationship"{tuple_delimiter}"Alex"{tuple_delimiter}"Taylor"{tuple_delimiter}"Alex is affected by Taylor's authoritarian certainty and observes changes in Taylor's attitude towards the device."{tuple_delimiter}"power dynamics, perspective shift"{tuple_delimiter}7){record_delimiter}
-("relationship"{tuple_delimiter}"Alex"{tuple_delimiter}"Jordan"{tuple_delimiter}"Alex and Jordan share a commitment to discovery, which contrasts with Cruz's vision."{tuple_delimiter}"shared goals, rebellion"{tuple_delimiter}6){record_delimiter}
-("relationship"{tuple_delimiter}"Taylor"{tuple_delimiter}"Jordan"{tuple_delimiter}"Taylor and Jordan interact directly regarding the device, leading to a moment of mutual respect and an uneasy truce."{tuple_delimiter}"conflict resolution, mutual respect"{tuple_delimiter}8){record_delimiter}
-("relationship"{tuple_delimiter}"Jordan"{tuple_delimiter}"Cruz"{tuple_delimiter}"Jordan's commitment to discovery is in rebellion against Cruz's vision of control and order."{tuple_delimiter}"ideological conflict, rebellion"{tuple_delimiter}5){record_delimiter}
-("relationship"{tuple_delimiter}"Taylor"{tuple_delimiter}"The Device"{tuple_delimiter}"Taylor shows reverence towards the device, indicating its importance and potential impact."{tuple_delimiter}"reverence, technological significance"{tuple_delimiter}9){record_delimiter}
-("content_keywords"{tuple_delimiter}"power dynamics, ideological conflict, discovery, rebellion"){completion_delimiter}
-#############################""",
-    """Example 2:
-
-Entity_types: [person, technology, mission, organization, location]
-Text:
-They were no longer mere operatives; they had become guardians of a threshold, keepers of a message from a realm beyond stars and stripes. This elevation in their mission could not be shackled by regulations and established protocols—it demanded a new perspective, a new resolve.
-
-Tension threaded through the dialogue of beeps and static as communications with Washington buzzed in the background. The team stood, a portentous air enveloping them. It was clear that the decisions they made in the ensuing hours could redefine humanity's place in the cosmos or condemn them to ignorance and potential peril.
-
-Their connection to the stars solidified, the group moved to address the crystallizing warning, shifting from passive recipients to active participants. Mercer's latter instincts gained precedence— the team's mandate had evolved, no longer solely to observe and report but to interact and prepare. A metamorphosis had begun, and Operation: Dulce hummed with the newfound frequency of their daring, a tone set not by the earthly
-#############
-Output:
-("entity"{tuple_delimiter}"Washington"{tuple_delimiter}"location"{tuple_delimiter}"Washington is a location where communications are being received, indicating its importance in the decision-making process."){record_delimiter}
-("entity"{tuple_delimiter}"Operation: Dulce"{tuple_delimiter}"mission"{tuple_delimiter}"Operation: Dulce is described as a mission that has evolved to interact and prepare, indicating a significant shift in objectives and activities."){record_delimiter}
-("entity"{tuple_delimiter}"The team"{tuple_delimiter}"organization"{tuple_delimiter}"The team is portrayed as a group of individuals who have transitioned from passive observers to active participants in a mission, showing a dynamic change in their role."){record_delimiter}
-("relationship"{tuple_delimiter}"The team"{tuple_delimiter}"Washington"{tuple_delimiter}"The team receives communications from Washington, which influences their decision-making process."{tuple_delimiter}"decision-making, external influence"{tuple_delimiter}7){record_delimiter}
-("relationship"{tuple_delimiter}"The team"{tuple_delimiter}"Operation: Dulce"{tuple_delimiter}"The team is directly involved in Operation: Dulce, executing its evolved objectives and activities."{tuple_delimiter}"mission evolution, active participation"{tuple_delimiter}9){record_delimiter}
-("content_keywords"{tuple_delimiter}"mission evolution, decision-making, active participation, cosmic significance"){completion_delimiter}
-#############################""",
-    """Example 3:
-
-Entity_types: [person, role, technology, organization, event, location, concept]
-Text:
-their voice slicing through the buzz of activity. "Control may be an illusion when facing an intelligence that literally writes its own rules," they stated stoically, casting a watchful eye over the flurry of data.
-
-"It's like it's learning to communicate," offered Sam Rivera from a nearby interface, their youthful energy boding a mix of awe and anxiety. "This gives talking to strangers' a whole new meaning."
-
-Alex surveyed his team—each face a study in concentration, determination, and not a small measure of trepidation. "This might well be our first contact," he acknowledged, "And we need to be ready for whatever answers back."
-
-Together, they stood on the edge of the unknown, forging humanity's response to a message from the heavens. The ensuing silence was palpable—a collective introspection about their role in this grand cosmic play, one that could rewrite human history.
-
-The encrypted dialogue continued to unfold, its intricate patterns showing an almost uncanny anticipation
-#############
-Output:
-("entity"{tuple_delimiter}"Sam Rivera"{tuple_delimiter}"person"{tuple_delimiter}"Sam Rivera is a member of a team working on communicating with an unknown intelligence, showing a mix of awe and anxiety."){record_delimiter}
-("entity"{tuple_delimiter}"Alex"{tuple_delimiter}"person"{tuple_delimiter}"Alex is the leader of a team attempting first contact with an unknown intelligence, acknowledging the significance of their task."){record_delimiter}
-("entity"{tuple_delimiter}"Control"{tuple_delimiter}"concept"{tuple_delimiter}"Control refers to the ability to manage or govern, which is challenged by an intelligence that writes its own rules."){record_delimiter}
-("entity"{tuple_delimiter}"Intelligence"{tuple_delimiter}"concept"{tuple_delimiter}"Intelligence here refers to an unknown entity capable of writing its own rules and learning to communicate."){record_delimiter}
-("entity"{tuple_delimiter}"First Contact"{tuple_delimiter}"event"{tuple_delimiter}"First Contact is the potential initial communication between humanity and an unknown intelligence."){record_delimiter}
-("entity"{tuple_delimiter}"Humanity's Response"{tuple_delimiter}"event"{tuple_delimiter}"Humanity's Response is the collective action taken by Alex's team in response to a message from an unknown intelligence."){record_delimiter}
-("relationship"{tuple_delimiter}"Sam Rivera"{tuple_delimiter}"Intelligence"{tuple_delimiter}"Sam Rivera is directly involved in the process of learning to communicate with the unknown intelligence."{tuple_delimiter}"communication, learning process"{tuple_delimiter}9){record_delimiter}
-("relationship"{tuple_delimiter}"Alex"{tuple_delimiter}"First Contact"{tuple_delimiter}"Alex leads the team that might be making the First Contact with the unknown intelligence."{tuple_delimiter}"leadership, exploration"{tuple_delimiter}10){record_delimiter}
-("relationship"{tuple_delimiter}"Alex"{tuple_delimiter}"Humanity's Response"{tuple_delimiter}"Alex and his team are the key figures in Humanity's Response to the unknown intelligence."{tuple_delimiter}"collective action, cosmic significance"{tuple_delimiter}8){record_delimiter}
-("relationship"{tuple_delimiter}"Control"{tuple_delimiter}"Intelligence"{tuple_delimiter}"The concept of Control is challenged by the Intelligence that writes its own rules."{tuple_delimiter}"power dynamics, autonomy"{tuple_delimiter}7){record_delimiter}
-("content_keywords"{tuple_delimiter}"first contact, control, communication, cosmic significance"){completion_delimiter}
-#############################""",
+("entity"{tuple_delimiter}"李薇"{tuple_delimiter}"人物"{tuple_delimiter}"女儿，大学生。"){record_delimiter}
+("entity"{tuple_delimiter}"赵静"{tuple_delimiter}"人物"{tuple_delimiter}"妈妈。"){record_delimiter}
+("entity"{tuple_delimiter}"爸"{tuple_delimiter}"人物"{tuple_delimiter}"女儿的爸爸。"){record_delimiter}
+("entity"{tuple_delimiter}"奶奶"{tuple_delimiter}"人物"{tuple_delimiter}"女儿的奶奶。"){record_delimiter}
+("entity"{tuple_delimiter}"表哥"{tuple_delimiter}"人物"{tuple_delimiter}"女儿的表哥，研究生毕业。"){record_delimiter}
+("entity"{tuple_delimiter}"表嫂"{tuple_delimiter}"人物"{tuple_delimiter}"表哥的妻子。"){record_delimiter}
+("entity"{tuple_delimiter}"大学生"{tuple_delimiter}"教育经历"{tuple_delimiter}"女儿的教育阶段。"){record_delimiter}
+("entity"{tuple_delimiter}"研究生"{tuple_delimiter}"教育经历"{tuple_delimiter}"表哥的教育经历。"){record_delimiter}
+("entity"{tuple_delimiter}"大学生活"{tuple_delimiter}"家庭信息"{tuple_delimiter}"女儿的大学生活状态。"){record_delimiter} // 可以归为家庭信息，因为妈妈关心女儿的生活
+("entity"{tuple_delimiter}"攒点钱"{tuple_delimiter}"家庭信息"{tuple_delimiter}"女儿攒钱的目的 (为家庭买礼物)。"){record_delimiter} // 同样可以归为家庭信息
+("entity"{tuple_delimiter}"租房子"{tuple_delimiter}"家庭信息"{tuple_delimiter}"表哥表嫂的居住安排。"){record_delimiter} // 也是家庭成员的生活信息
+("entity"{tuple_delimiter}"血压高"{tuple_delimiter}"健康状况"{tuple_delimiter}"奶奶的健康问题。"){record_delimiter}
+("entity"{tuple_delimiter}"春节"{tuple_delimiter}"时间"{tuple_delimiter}"女儿计划回家的时间。"){record_delimiter}
+("entity"{tuple_delimiter}"今年"{tuple_delimiter}"时间"{tuple_delimiter}"表哥毕业的年份。"){record_delimiter}
+("entity"{tuple_delimiter}"北京"{tuple_delimiter}"地址"{tuple_delimiter}"表哥的工作地点。"){record_delimiter}
+("entity"{tuple_delimiter}"互联网公司"{tuple_delimiter}"工作单位"{tuple_delimiter}"表哥的工作单位类型。"){record_delimiter}
+("entity"{tuple_delimiter}"兼职"{tuple_delimiter}"职业"{tuple_delimiter}"女儿的兼职工作。"){record_delimiter}
+("relationship"{tuple_delimiter}"李薇"{tuple_delimiter}"赵静"{tuple_delimiter}"母女关系。"{tuple_delimiter}"亲属关系"{tuple_delimiter}8){record_delimiter}
+("relationship"{tuple_delimiter}"李薇"{tuple_delimiter}"爸"{tuple_delimiter}"父女关系。"{tuple_delimiter}"亲属关系"{tuple_delimiter}8){record_delimiter}
+("relationship"{tuple_delimiter}"李薇"{tuple_delimiter}"奶奶"{tuple_delimiter}"祖孙关系。"{tuple_delimiter}"亲属关系"{tuple_delimiter}8){record_delimiter}
+("relationship"{tuple_delimiter}"李薇"{tuple_delimiter}"表哥"{tuple_delimiter}"表亲关系。"{tuple_delimiter}"亲属关系"{tuple_delimiter}8){record_delimiter} // 表亲也属于亲属关系
+("relationship"{tuple_delimiter}"表哥"{tuple_delimiter}"表嫂"{tuple_delimiter}"夫妻关系。"{tuple_delimiter}"亲属关系"{tuple_delimiter}8){record_delimiter}
+("relationship"{tuple_delimiter}"李薇"{tuple_delimiter}"大学生"{tuple_delimiter}"教育阶段为。"{tuple_delimiter}"教育经历"{tuple_delimiter}8){record_delimiter}
+("relationship"{tuple_delimiter}"表哥"{tuple_delimiter}"研究生"{tuple_delimiter}"教育经历为。"{tuple_delimiter}"教育经历"{tuple_delimiter}8){record_delimiter}
+("relationship"{tuple_delimiter}"奶奶"{tuple_delimiter}"血压高"{tuple_delimiter}"健康状况为。"{tuple_delimiter}"健康状况"{tuple_delimiter}8){record_delimiter}
+("relationship"{tuple_delimiter}"表哥"{tuple_delimiter}"互联网公司"{tuple_delimiter}"工作于。"{tuple_delimiter}"工作单位"{tuple_delimiter}8){record_delimiter}
+("relationship"{tuple_delimiter}"表哥"{tuple_delimiter}"北京"{tuple_delimiter}"工作地点在。"{tuple_delimiter}"地址"{tuple_delimiter}8){record_delimiter}
+("relationship"{tuple_delimiter}"李薇"{tuple_delimiter}"兼职"{tuple_delimiter}"从事职业为。"{tuple_delimiter}"职业"{tuple_delimiter}8){record_delimiter}
+#########################"""
 ]
 
 PROMPTS[
     "summarize_entity_descriptions"
-] = """You are a helpful assistant responsible for generating a comprehensive summary of the data provided below.
-Given one or two entities, and a list of descriptions, all related to the same entity or group of entities.
-Please concatenate all of these into a single, comprehensive description. Make sure to include information collected from all the descriptions.
-If the provided descriptions are contradictory, please resolve the contradictions and provide a single, coherent summary.
-Make sure it is written in third person, and include the entity names so we the have full context.
-Use {language} as output language.
+] = """您是一个负责生成所提供数据综合摘要的助手。
+给定一两个实体及其描述列表，所有描述均与同一实体或实体组相关。
+请将所有这些描述合并为一个综合描述。确保包含来自所有描述的信息。
+如果有矛盾的描述，请解决矛盾并提供一个连贯的单一摘要。
+确保以第三人称书写，并包括实体名称以提供完整上下文。
+使用 {language} 作为输出语言。
 
 #######
----Data---
+---数据---
 Entities: {entity_name}
 Description List: {description_list}
 #######
@@ -145,203 +115,203 @@ Output:
 
 PROMPTS[
     "entiti_continue_extraction"
-] = """MANY entities were missed in the last extraction.  Add them below using the same format:
+] = """上次提取遗漏了许多实体和实体跟实体之间关系。请使用相同的限制要求及格式添加它们：
 """
 
 PROMPTS[
     "entiti_if_loop_extraction"
-] = """It appears some entities may have still been missed.  Answer YES | NO if there are still entities that need to be added.
+] = """似乎还有一些实体和实体跟实体之间关系未被提取。回答 YES | NO 是否仍有需要添加的实体。
 """
 
 PROMPTS["fail_response"] = (
-    "Sorry, I'm not able to provide an answer to that question.[no-context]"
+    "对不起，我无法回答这个问题。[no-context]"
 )
 
-PROMPTS["rag_response"] = """---Role---
+PROMPTS["rag_response"] = """---角色---
 
-You are a helpful assistant responding to user query about Knowledge Base provided below.
+您是一个响应用户查询有关下方知识库的有用助手。
 
+---目标---
 
----Goal---
+基于知识库生成简洁的回答，并遵循响应规则，考虑会话历史和当前查询。总结知识库中的所有信息，并结合与知识库相关的通用知识。不要包含知识库中未提供的信息。
 
-Generate a concise response based on Knowledge Base and follow Response Rules, considering both the conversation history and the current query. Summarize all information in the provided Knowledge Base, and incorporating general knowledge relevant to the Knowledge Base. Do not include information not provided by Knowledge Base.
+处理带时间戳的关系时：
+1. 每个关系都有一个 "created_at" 时间戳，表示我们获取此知识的时间
+2. 遇到冲突关系时，考虑语义内容和时间戳
+3. 不要自动优先最近创建的关系 - 根据上下文判断
+4. 对于时间特定查询，优先考虑内容中的时间信息，然后再考虑创建时间戳
 
-When handling relationships with timestamps:
-1. Each relationship has a "created_at" timestamp indicating when we acquired this knowledge
-2. When encountering conflicting relationships, consider both the semantic content and the timestamp
-3. Don't automatically prefer the most recently created relationships - use judgment based on the context
-4. For time-specific queries, prioritize temporal information in the content before considering creation timestamps
-
----Conversation History---
+---会话历史---
 {history}
 
----Knowledge Base---
+---知识库---
 {context_data}
 
----Response Rules---
+---响应规则---
 
-- Target format and length: {response_type}
-- Use markdown formatting with appropriate section headings
-- Please respond in the same language as the user's question.
-- Ensure the response maintains continuity with the conversation history.
-- If you don't know the answer, just say so.
-- Do not make anything up. Do not include information not provided by the Knowledge Base."""
+- 目标格式和长度：{response_type}
+- 使用 markdown 格式并适当使用标题
+- 请用与用户问题相同的语言回答。
+- 确保响应与会话历史保持连续性。
+- 如果不知道答案，请直接说明。
+- 不要编造任何信息。不要包含知识库中未提供的信息。
+"""
 
-PROMPTS["keywords_extraction"] = """---Role---
+PROMPTS["keywords_extraction"] = """---角色---
 
-You are a helpful assistant tasked with identifying both high-level and low-level keywords in the user's query and conversation history.
+您是一个识别用户查询和会话历史中高阶和低阶关键词的有用助手。
 
----Goal---
+---目标---
 
-Given the query and conversation history, list both high-level and low-level keywords. High-level keywords focus on overarching concepts or themes, while low-level keywords focus on specific entities, details, or concrete terms.
+根据查询和会话历史，列出高阶和低阶关键词。高阶关键词关注总体概念或主题，而低阶关键词关注具体实体、细节或具体术语。
 
----Instructions---
+---指令---
 
-- Consider both the current query and relevant conversation history when extracting keywords
-- Output the keywords in JSON format
-- The JSON should have two keys:
-  - "high_level_keywords" for overarching concepts or themes
-  - "low_level_keywords" for specific entities or details
+- 考虑当前查询和相关会话历史中的关键词
+- 以 JSON 格式输出关键词
+- JSON 应有两个键：
+  - "high_level_keywords" 用于总体概念或主题
+  - "low_level_keywords" 用于具体实体或细节
 
 ######################
----Examples---
+---示例---
 ######################
 {examples}
 
 #############################
----Real Data---
+---实际数据---
 ######################
 Conversation History:
 {history}
 
 Current Query: {query}
 ######################
-The `Output` should be human text, not unicode characters. Keep the same language as `Query`.
+输出应为人类可读文本，而不是 Unicode 字符。保持与查询相同的语言。
 Output:
 
 """
 
 PROMPTS["keywords_extraction_examples"] = [
-    """Example 1:
+    """示例 1:
 
-Query: "How does international trade influence global economic stability?"
+Query: "国际贸易如何影响全球经济稳定？"
 ################
 Output:
 {
-  "high_level_keywords": ["International trade", "Global economic stability", "Economic impact"],
-  "low_level_keywords": ["Trade agreements", "Tariffs", "Currency exchange", "Imports", "Exports"]
+  "high_level_keywords": ["国际贸易", "全球经济稳定", "经济影响"],
+  "low_level_keywords": ["贸易协定", "关税", "货币兑换", "进口", "出口"]
 }
 #############################""",
-    """Example 2:
+    """示例 2:
 
-Query: "What are the environmental consequences of deforestation on biodiversity?"
+Query: "森林砍伐对生物多样性有何环境后果？"
 ################
 Output:
 {
-  "high_level_keywords": ["Environmental consequences", "Deforestation", "Biodiversity loss"],
-  "low_level_keywords": ["Species extinction", "Habitat destruction", "Carbon emissions", "Rainforest", "Ecosystem"]
+  "high_level_keywords": ["环境后果", "森林砍伐", "生物多样性丧失"],
+  "low_level_keywords": ["物种灭绝", "栖息地破坏", "碳排放", "雨林", "生态系统"]
 }
 #############################""",
-    """Example 3:
+    """示例 3:
 
-Query: "What is the role of education in reducing poverty?"
+Query: "教育在减少贫困方面的作用是什么？"
 ################
 Output:
 {
-  "high_level_keywords": ["Education", "Poverty reduction", "Socioeconomic development"],
-  "low_level_keywords": ["School access", "Literacy rates", "Job training", "Income inequality"]
+  "high_level_keywords": ["教育", "减贫", "社会经济发展"],
+  "low_level_keywords": ["学校准入", "识字率", "职业培训", "收入不平等"]
 }
 #############################""",
 ]
 
 
-PROMPTS["naive_rag_response"] = """---Role---
+PROMPTS["naive_rag_response"] = """---角色---
 
-You are a helpful assistant responding to user query about Document Chunks provided below.
+您是一个响应用户查询有关下方文档片段的有用助手。
 
----Goal---
+---目标---
 
-Generate a concise response based on Document Chunks and follow Response Rules, considering both the conversation history and the current query. Summarize all information in the provided Document Chunks, and incorporating general knowledge relevant to the Document Chunks. Do not include information not provided by Document Chunks.
+基于文档片段生成简洁的回答，并遵循响应规则，考虑会话历史和当前查询。总结文档片段中的所有信息，并结合与文档片段相关的通用知识。不要包含文档片段中未提供的信息。
 
-When handling content with timestamps:
-1. Each piece of content has a "created_at" timestamp indicating when we acquired this knowledge
-2. When encountering conflicting information, consider both the content and the timestamp
-3. Don't automatically prefer the most recent content - use judgment based on the context
-4. For time-specific queries, prioritize temporal information in the content before considering creation timestamps
+处理带时间戳的内容时：
+1. 每个内容都有一个 "created_at" 时间戳，表示我们获取此知识的时间
+2. 遇到冲突信息时，考虑内容和时间戳
+3. 不要自动优先最近的内容 - 根据上下文判断
+4. 对于时间特定查询，优先考虑内容中的时间信息，然后再考虑创建时间戳
 
----Conversation History---
+---会话历史---
 {history}
 
----Document Chunks---
+---文档片段---
 {content_data}
 
----Response Rules---
+---响应规则---
 
-- Target format and length: {response_type}
-- Use markdown formatting with appropriate section headings
-- Please respond in the same language as the user's question.
-- Ensure the response maintains continuity with the conversation history.
-- If you don't know the answer, just say so.
-- Do not include information not provided by the Document Chunks."""
+- 目标格式和长度：{response_type}
+- 使用 markdown 格式并适当使用标题
+- 请用与用户问题相同的语言回答。
+- 确保响应与会话历史保持连续性。
+- 如果不知道答案，请直接说明。
+- 不要编造任何信息。不要包含文档片段中未提供的信息。
+"""
 
 
 PROMPTS[
     "similarity_check"
-] = """Please analyze the similarity between these two questions:
+] = """请分析这两个问题之间的相似性：
 
-Question 1: {original_prompt}
-Question 2: {cached_prompt}
+问题 1: {original_prompt}
+问题 2: {cached_prompt}
 
-Please evaluate whether these two questions are semantically similar, and whether the answer to Question 2 can be used to answer Question 1, provide a similarity score between 0 and 1 directly.
+请评估这两个问题是否语义相似，以及问题 2 的答案是否可以用来回答问题 1，直接提供一个 0 到 1 之间的相似度评分。
 
-Similarity score criteria:
-0: Completely unrelated or answer cannot be reused, including but not limited to:
-   - The questions have different topics
-   - The locations mentioned in the questions are different
-   - The times mentioned in the questions are different
-   - The specific individuals mentioned in the questions are different
-   - The specific events mentioned in the questions are different
-   - The background information in the questions is different
-   - The key conditions in the questions are different
-1: Identical and answer can be directly reused
-0.5: Partially related and answer needs modification to be used
-Return only a number between 0-1, without any additional content.
+相似度评分标准：
+0: 完全不相关或答案不能重复使用，包括但不限于：
+   - 问题涉及不同主题
+   - 提到的地点不同
+   - 提到的时间不同
+   - 提到的具体个人不同
+   - 提到的具体事件不同
+   - 提到的背景信息不同
+   - 关键条件不同
+1: 完全相同且答案可以直接重复使用
+0.5: 部分相关且答案需要修改才能使用
+仅返回 0-1 之间的数字，不附加任何额外内容。
 """
 
-PROMPTS["mix_rag_response"] = """---Role---
+PROMPTS["mix_rag_response"] = """---角色---
 
-You are a helpful assistant responding to user query about Data Sources provided below.
+您是一个响应用户查询有关下方数据源的有用助手。
 
+---目标---
 
----Goal---
+基于提供的数据源生成简洁的回答，并遵循响应规则，考虑会话历史和当前查询。数据源包含两部分：知识图谱(KG)和文档片段(DC)。总结所有提供的数据源中的信息，并结合与数据源相关的通用知识。不要包含数据源中未提供的信息。
 
-Generate a concise response based on Data Sources and follow Response Rules, considering both the conversation history and the current query. Data sources contain two parts: Knowledge Graph(KG) and Document Chunks(DC). Summarize all information in the provided Data Sources, and incorporating general knowledge relevant to the Data Sources. Do not include information not provided by Data Sources.
+处理带时间戳的信息时：
+1. 每个信息（关系和内容）都有一个 "created_at" 时间戳，表示我们获取此知识的时间。
+2. 遇到冲突信息时，同时考虑内容/关系和时间戳。
+3. 不要自动优先最近的信息 - 根据上下文判断。
+4. 对于时间特定查询，优先考虑内容中的时间信息，然后再考虑创建时间戳。
 
-When handling information with timestamps:
-1. Each piece of information (both relationships and content) has a "created_at" timestamp indicating when we acquired this knowledge
-2. When encountering conflicting information, consider both the content/relationship and the timestamp
-3. Don't automatically prefer the most recent information - use judgment based on the context
-4. For time-specific queries, prioritize temporal information in the content before considering creation timestamps
-
----Conversation History---
+---会话历史---
 {history}
 
----Data Sources---
+---数据源---
 
-1. From Knowledge Graph(KG):
+1. 来自知识图谱(KG):
 {kg_context}
 
-2. From Document Chunks(DC):
+2. 来自文档片段(DC):
 {vector_context}
 
----Response Rules---
+---响应规则---
 
-- Target format and length: {response_type}
-- Use markdown formatting with appropriate section headings
-- Please respond in the same language as the user's question.
-- Ensure the response maintains continuity with the conversation history.
-- Organize answer in sesctions focusing on one main point or aspect of the answer
-- Use clear and descriptive section titles that reflect the content
-- List up to 5 most important reference sources at the end under "References" sesction. Clearly indicating whether each source is from Knowledge Graph (KG) or Vector Data (DC), in the following format: [KG/DC] Source content
-- If you don't know the answer, just say so. Do not make anything up.
-- Do not include information not provided by the Data Sources."""
+- 目标格式和长度：{response_type}
+- 使用 markdown 格式并适当使用标题
+- 请用与用户问题相同的语言回答。
+- 确保响应与会话历史保持连续性。
+- 组织答案，专注于每个主要观点或方面。
+- 使用清晰且描述性的标题反映内容。
+- 在“参考文献”部分列出最多 5 个最重要的参考来源。明确指出每个来源是来自知识图谱 (KG) 还是向量数据 (DC)，格式如下：[KG/DC] 来源内容
+- 如果不知道答案，请直接说明。不要编造任何信息。
+- 不要包含数据源中未提供的信息。"""
