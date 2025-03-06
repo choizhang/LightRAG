@@ -10,7 +10,7 @@ PROMPTS["DEFAULT_TUPLE_DELIMITER"] = "<|>"
 PROMPTS["DEFAULT_RECORD_DELIMITER"] = "##"
 PROMPTS["DEFAULT_COMPLETION_DELIMITER"] = "<|COMPLETE|>"
 
-PROMPTS["DEFAULT_ENTITY_TYPES"] = ["爱好", "人物", "健康状况", "事件", "职业", "工作单位", "时间", "教育经历", "亲戚", "师生", "朋友", "地址", "个人信息", "家庭信息", "设备管理"]
+PROMPTS["DEFAULT_ENTITY_TYPES"] = ["爱好", "人物", "健康状况", "事件", "职业", "工作单位", "时间", "教育经历", "亲戚", "师生", "朋友", "地址", "个人信息", "手机号码", "家庭信息", "设备管理"]
 
 PROMPTS["entity_extraction"] = """---目标---
 给定一段机器人和家庭成员自然对话聊天内容，忽略Robot本身的实体和关系，忽略Robot在对话中的主观评价，识别文本中所有这些类型的实体以及实体跟实体之间的关系。将文本里面的内容进行知识融合，包括指代消解、消除歧义、消除矛盾等。
@@ -18,7 +18,8 @@ PROMPTS["entity_extraction"] = """---目标---
 
 ---步骤---
 1. 识别所有实体。对于每个识别出的实体，提取以下信息：
-- entity_name: 实体名称，使用与输入文本相同的语言。如果是英文，则大写名称。
+- entity_name: 实体名称，使用与输入文本相同的语言。如果是英文，则大写名称。尽可能将指示代词或角色称谓替换为已有实体，比如：小红的姐姐是张希，那别人对小红说你姐姐的时候则将小红姐姐替换为张希。当文本中出现 "爸爸"、"父亲"、"儿子" 等指代词或角色称谓时，需要通过上下文判断它们是否指向已有的实体，而不是创建新的实体。
+
 - entity_type: 以下类型之一：[{entity_types}]
 - entity_description: 实体属性和活动的综合描述
 以 ("entity"{tuple_delimiter}<entity_name>{tuple_delimiter}<entity_type>{tuple_delimiter}<entity_description>) 的格式表示每个实体
@@ -53,47 +54,6 @@ Text: {input_text}
 Output:"""
 
 PROMPTS["entity_extraction_examples"] = [
-    """示例 1:
-
-Entity_types: [人物, 教育经历, 家庭信息, 健康状况, 时间, 地址, 工作单位, 职业]
-Text:
-李薇： 妈，最近怎么样？ 爸身体还好吧？
-赵静： 挺好的，就是你奶奶最近血压有点高，吃了点药好多了。 你呢？大学生活怎么样？ 兼职累不累？
-李薇： 我还行，学校这边都挺适应的。 兼职也不算太累，就是想多 攒点钱， 春节回家给你们买礼物！
-赵静： 傻孩子，不用给我们买什么礼物，照顾好自己就行。 对了，你 表哥 今年 研究生毕业，找到 北京 的 互联网公司 工作了！
-李薇： 真的啊！ 表哥真厉害！ 那 表嫂 也一起去北京了吗？
-赵静： 嗯，你表嫂也跟着去了，他们一起 租房子 呢。
-################
-Output:
-("entity"{tuple_delimiter}"李薇"{tuple_delimiter}"人物"{tuple_delimiter}"女儿，大学生。"){record_delimiter}
-("entity"{tuple_delimiter}"赵静"{tuple_delimiter}"人物"{tuple_delimiter}"妈妈。"){record_delimiter}
-("entity"{tuple_delimiter}"爸"{tuple_delimiter}"人物"{tuple_delimiter}"女儿的爸爸。"){record_delimiter}
-("entity"{tuple_delimiter}"奶奶"{tuple_delimiter}"人物"{tuple_delimiter}"女儿的奶奶。"){record_delimiter}
-("entity"{tuple_delimiter}"表哥"{tuple_delimiter}"人物"{tuple_delimiter}"女儿的表哥，研究生毕业。"){record_delimiter}
-("entity"{tuple_delimiter}"表嫂"{tuple_delimiter}"人物"{tuple_delimiter}"表哥的妻子。"){record_delimiter}
-("entity"{tuple_delimiter}"大学生"{tuple_delimiter}"教育经历"{tuple_delimiter}"女儿的教育阶段。"){record_delimiter}
-("entity"{tuple_delimiter}"研究生"{tuple_delimiter}"教育经历"{tuple_delimiter}"表哥的教育经历。"){record_delimiter}
-("entity"{tuple_delimiter}"大学生活"{tuple_delimiter}"家庭信息"{tuple_delimiter}"女儿的大学生活状态。"){record_delimiter} // 可以归为家庭信息，因为妈妈关心女儿的生活
-("entity"{tuple_delimiter}"攒点钱"{tuple_delimiter}"家庭信息"{tuple_delimiter}"女儿攒钱的目的 (为家庭买礼物)。"){record_delimiter} // 同样可以归为家庭信息
-("entity"{tuple_delimiter}"租房子"{tuple_delimiter}"家庭信息"{tuple_delimiter}"表哥表嫂的居住安排。"){record_delimiter} // 也是家庭成员的生活信息
-("entity"{tuple_delimiter}"血压高"{tuple_delimiter}"健康状况"{tuple_delimiter}"奶奶的健康问题。"){record_delimiter}
-("entity"{tuple_delimiter}"春节"{tuple_delimiter}"时间"{tuple_delimiter}"女儿计划回家的时间。"){record_delimiter}
-("entity"{tuple_delimiter}"今年"{tuple_delimiter}"时间"{tuple_delimiter}"表哥毕业的年份。"){record_delimiter}
-("entity"{tuple_delimiter}"北京"{tuple_delimiter}"地址"{tuple_delimiter}"表哥的工作地点。"){record_delimiter}
-("entity"{tuple_delimiter}"互联网公司"{tuple_delimiter}"工作单位"{tuple_delimiter}"表哥的工作单位类型。"){record_delimiter}
-("entity"{tuple_delimiter}"兼职"{tuple_delimiter}"职业"{tuple_delimiter}"女儿的兼职工作。"){record_delimiter}
-("relationship"{tuple_delimiter}"李薇"{tuple_delimiter}"赵静"{tuple_delimiter}"母女关系。"{tuple_delimiter}"亲属关系"{tuple_delimiter}8){record_delimiter}
-("relationship"{tuple_delimiter}"李薇"{tuple_delimiter}"爸"{tuple_delimiter}"父女关系。"{tuple_delimiter}"亲属关系"{tuple_delimiter}8){record_delimiter}
-("relationship"{tuple_delimiter}"李薇"{tuple_delimiter}"奶奶"{tuple_delimiter}"祖孙关系。"{tuple_delimiter}"亲属关系"{tuple_delimiter}8){record_delimiter}
-("relationship"{tuple_delimiter}"李薇"{tuple_delimiter}"表哥"{tuple_delimiter}"表亲关系。"{tuple_delimiter}"亲属关系"{tuple_delimiter}8){record_delimiter} // 表亲也属于亲属关系
-("relationship"{tuple_delimiter}"表哥"{tuple_delimiter}"表嫂"{tuple_delimiter}"夫妻关系。"{tuple_delimiter}"亲属关系"{tuple_delimiter}8){record_delimiter}
-("relationship"{tuple_delimiter}"李薇"{tuple_delimiter}"大学生"{tuple_delimiter}"教育阶段为。"{tuple_delimiter}"教育经历"{tuple_delimiter}8){record_delimiter}
-("relationship"{tuple_delimiter}"表哥"{tuple_delimiter}"研究生"{tuple_delimiter}"教育经历为。"{tuple_delimiter}"教育经历"{tuple_delimiter}8){record_delimiter}
-("relationship"{tuple_delimiter}"奶奶"{tuple_delimiter}"血压高"{tuple_delimiter}"健康状况为。"{tuple_delimiter}"健康状况"{tuple_delimiter}8){record_delimiter}
-("relationship"{tuple_delimiter}"表哥"{tuple_delimiter}"互联网公司"{tuple_delimiter}"工作于。"{tuple_delimiter}"工作单位"{tuple_delimiter}8){record_delimiter}
-("relationship"{tuple_delimiter}"表哥"{tuple_delimiter}"北京"{tuple_delimiter}"工作地点在。"{tuple_delimiter}"地址"{tuple_delimiter}8){record_delimiter}
-("relationship"{tuple_delimiter}"李薇"{tuple_delimiter}"兼职"{tuple_delimiter}"从事职业为。"{tuple_delimiter}"职业"{tuple_delimiter}8){record_delimiter}
-#########################"""
 ]
 
 PROMPTS[
@@ -315,3 +275,53 @@ PROMPTS["mix_rag_response"] = """---角色---
 - 在“参考文献”部分列出最多 5 个最重要的参考来源。明确指出每个来源是来自知识图谱 (KG) 还是向量数据 (DC)，格式如下：[KG/DC] 来源内容
 - 如果不知道答案，请直接说明。不要编造任何信息。
 - 不要包含数据源中未提供的信息。"""
+
+
+
+PROMPTS["fusion"] = '''
+参考下面2个示例，将指示代词替换为具体人物的名字。
+示例一
+已知对话中 韩梅梅 的 妈妈 是 王淑芬。
+请阅读以下对话，并将对话中 "我妈妈", "你妈妈" 都替换成 韩梅梅 的 妈妈 的具体名字，即 "王淑芬"。
+对话：
+韩梅梅: 今天我妈妈身体不舒服，想请假一天。
+老师: 好的，那你妈妈要多注意休息。
+韩梅梅: 妈妈的电话号码是18081959492。
+替换后的对话：
+韩梅梅: 今天王淑芬身体不舒服，想请假一天。
+老师: 好的，那王淑芬要多注意休息。
+韩梅梅: 王淑芬的电话号码是18081959492。
+
+示例二
+已知对话中 "他" 指的是 张强，并且 张强 的 妹妹 是 张小丽。
+请阅读以下对话，并将对话中 "他的妹妹" 这个短语，替换成 张强 的 妹妹 的具体名字，即 "张小丽"。
+对话：
+李明: 你看到他的妹妹了吗？ 她今天穿得很漂亮。
+王芳: 看到了，他的妹妹确实很漂亮。
+替换后的对话：
+李明: 你看到张小丽了吗？ 张小丽今天穿得很漂亮。
+王芳: 看到了，张小丽确实很漂亮。
+'''
+
+PROMPTS["synonym"] = '''
+请将上面的聊天对话按照下面的要求处理后重新输出
+
+将文本中实体按照下面近义词列表进行规范化为冒号左边的称谓
+近义词列表
+父亲：爸爸、爹、老爸,
+母亲：妈妈、妈、娘、老妈、妈咪、阿妈,
+祖父：爷爷、爷、阿爷、老爷,
+祖母：奶奶、奶、阿奶、老奶,
+外祖父：外公、姥爷、公公,
+外祖母：外婆、姥姥、婆婆,
+丈夫：老公、先生、那口子、孩儿他爹、当家的、老伴、夫君,
+妻子：老婆、太太、那口子、孩儿他妈、当家的、老伴、夫人,
+儿媳妇：儿媳,
+女婿：小女婿,
+儿子：儿、娃、小子,
+女儿：妮儿、丫头、闺女,
+哥哥：哥哥、哥、大哥、阿哥,
+姐姐：姐姐、姐、大姐、阿姐,
+弟弟：弟弟、弟、小弟、老弟,
+妹妹：妹妹、妹、小妹、老妹,
+'''

@@ -35,7 +35,7 @@ from .operate import (
     mix_kg_vector_query,
     naive_query,
 )
-from .prompt import GRAPH_FIELD_SEP
+from .prompt import GRAPH_FIELD_SEP, PROMPTS  # Added PROMPTS import here
 from .utils import (
     EmbeddingFunc,
     always_get_an_event_loop,
@@ -412,6 +412,9 @@ class LightRAG:
         if self.auto_manage_storages_states:
             self._run_async_safely(self.initialize_storages, "Storage Initialization")
 
+        # 添加对自身的引用，以便在其他地方使用
+        self.addon_params["_process_entities_for_insertion"] = self._process_entities_for_insertion
+
     def __del__(self):
         if self.auto_manage_storages_states:
             self._run_async_safely(self.finalize_storages, "Storage Finalization")
@@ -610,6 +613,97 @@ class LightRAG:
             if update_storage:
                 await self._insert_done()
 
+    async def _normalize_text_with_synonym(self, text: str) -> str:
+        """使用大模型对文本进行同义词规范化处理，并利用知识图谱进行指代消解
+        
+        Args:
+            text: 需要规范化的文本
+            
+        Returns:
+            规范化后的文本
+        """
+        try:
+            if not self.llm_model_func:
+                logger.warning("LLM model function not set, skipping text normalization")
+                return text
+            
+            # 获取知识图谱中的所有实体和关系信息
+            entities = await self.chunk_entity_relation_graph.get_all_labels()
+            
+            # 构建实体关系信息
+            entity_info = []
+            for entity_name in entities:
+                node_data = await self.chunk_entity_relation_graph.get_node(entity_name)
+                if node_data:
+                    entity_info.append({
+                        "name": entity_name,
+                        "type": node_data.get("entity_type", "未知"),
+                        "description": node_data.get("description", "")
+                    })
+                
+                # 获取与该实体相关的关系
+                edges = await self.chunk_entity_relation_graph.get_node_edges(entity_name)
+                if edges:
+                    for src, tgt in edges:
+                        edge_data = await self.chunk_entity_relation_graph.get_edge(src, tgt)
+                        if edge_data:
+                            relation = {
+                                "source": src,
+                                "target": tgt,
+                                "description": edge_data.get("description", ""),
+                                "keywords": edge_data.get("keywords", "")
+                            }
+                            entity_info.append(relation)
+            
+            # 将实体和关系信息格式化为文本
+            kg_context = "知识图谱信息：\n"
+            for info in entity_info:
+                if "name" in info:  # 实体信息
+                    kg_context += f"实体: {info['name']}, 类型: {info['type']}, 描述: {info['description']}\n"
+                else:  # 关系信息
+                    kg_context += f"关系: {info['source']} -> {info['target']}, 描述: {info['description']}, 关键词: {info['keywords']}\n"
+            
+            # 构建完整提示词，包含知识图谱信息
+            prompt1 = PROMPTS["synonym"]
+            prompt2 = PROMPTS["fusion"]
+            
+            # 构建完整提示词
+            full_prompt = f"""请根据以下知识图谱信息和对话内容，进行指代消解和同义词规范化处理：
+
+{kg_context}
+
+对话内容：
+{text}
+
+{prompt1}
+{prompt2}
+
+特别注意：
+1. 利用知识图谱中的实体和关系信息来消解指代词
+2. 例如，如果知道"韩梅梅"是"李进"的妈妈，当文本中出现"你妈妈"且说话者是对李进说的，应该将其解析为"韩梅梅"
+3. 只有在知识图谱中有明确关系支持的情况下才进行消解，否则保持原文
+"""
+            print(f"同义词、指代消解大模型的输入: {full_prompt}")
+            # 调用大模型
+            response = await self.llm_model_func(
+                full_prompt,
+                model=self.llm_model_name,
+                temperature=0.1,  # 使用较低的温度以获得确定性输出
+                max_tokens=self.llm_model_max_token_size,
+            )
+            
+            # 如果响应为空，返回原文本
+            if not response:
+                logger.warning("Empty response from LLM for text normalization")
+                return text
+                
+            print(f"同义词、指代消解大模型的返回: {response}")
+            return response
+        except Exception as e:
+            logger.error(f"Error in text normalization: {e}")
+            # 出错时返回原文本
+            return text
+
     async def apipeline_enqueue_documents(
         self, input: str | list[str], ids: list[str] | None = None
     ) -> None:
@@ -626,6 +720,14 @@ class LightRAG:
             input = [input]
         if isinstance(ids, str):
             ids = [ids]
+
+        # 1. 对输入文本进行同义词规范化处理
+        normalized_input = []
+        for doc in input:
+            normalized_doc = await self._normalize_text_with_synonym(doc)
+            normalized_input.append(normalized_doc)
+        
+        input = normalized_input
 
         # 1. Validate ids if provided or generate MD5 hash IDs
         if ids is not None:
@@ -1002,6 +1104,14 @@ class LightRAG:
                     self.text_chunks.upsert(all_chunks_data),
                 )
 
+            # 处理实体，进行实体融合
+            if "entities" in custom_kg:
+                # 调用实体融合处理方法
+                chunk_id = next(iter(all_chunks_data.keys())) if all_chunks_data else "manual"
+                custom_kg["entities"] = await self._process_entities_for_insertion(
+                    custom_kg["entities"], chunk_id
+                )
+            
             # Insert entities into knowledge graph
             all_entities_data: list[dict[str, str]] = []
             for entity_data in custom_kg.get("entities", []):
@@ -2225,3 +2335,412 @@ class LightRAG:
         return loop.run_until_complete(
             self.acreate_relation(source_entity, target_entity, relation_data)
         )
+
+    async def _process_entities_for_insertion(self, entities: list[dict], chunk_id: str) -> list[dict]:
+        """处理待插入的实体，进行实体融合
+        
+        在实体插入前检查是否存在可以融合的实体，例如通用亲属关系实体（如"祖父"）
+        可以与具体人物实体（如"李双喜"）融合。
+        
+        Args:
+            entities: 待插入的实体列表
+            chunk_id: 当前文本块ID
+            
+        Returns:
+            处理后的实体列表
+        """
+        processed_entities = []
+        
+        # 定义通用家庭关系映射
+        family_relation_types = {
+            "父亲": ["父亲", "爸爸", "爹", "老爸"],
+            "母亲": ["母亲", "妈妈", "娘", "老妈"],
+            "儿子": ["儿子", "孩子"],
+            "女儿": ["女儿", "闺女"],
+            "祖父": ["祖父", "爷爷", "爷"],
+            "祖母": ["祖母", "奶奶", "奶"],
+            "外祖父": ["外祖父", "外公", "姥爷"],
+            "外祖母": ["外祖母", "外婆", "姥姥"],
+            "兄弟": ["兄弟", "哥哥", "弟弟"],
+            "姐妹": ["姐妹", "姐姐", "妹妹"],
+            "叔叔": ["叔叔", "伯伯", "舅舅"],
+            "阿姨": ["阿姨", "姑姑", "姨妈"]
+        }
+        
+        # 获取所有现有实体
+        existing_entities = await self.chunk_entity_relation_graph.get_all_labels()
+        
+        for entity in entities:
+            entity_name = entity.get("entity_name")
+            # 清理实体名称中可能存在的尖括号
+            entity_name = entity_name.strip('<>').strip() if entity_name else ""
+            # 更新清理后的实体名称
+            entity["entity_name"] = entity_name
+            
+            entity_type = entity.get("entity_type", "")
+            description = entity.get("description", "")
+            
+            # 跳过无效实体
+            if not entity_name:
+                continue
+                
+            # 检查是否需要进行实体融合
+            if entity_type == "人物":
+                # 查找可能存在的通用亲属关系实体
+                potential_merges = []
+                
+                # 获取与该实体相关的所有关系
+                for existing_entity in existing_entities:
+                    # 跳过自身
+                    if existing_entity == entity_name:
+                        continue
+                        
+                    # 获取实体信息
+                    node_data = await self.chunk_entity_relation_graph.get_node(existing_entity)
+                    if not node_data:
+                        continue
+                        
+                    existing_type = node_data.get("entity_type", "")
+                    existing_desc = node_data.get("description", "")
+                    
+                    # 检查是否是通用亲属实体
+                    if existing_type == "亲戚":
+                        # 检查描述中是否包含关系信息
+                        for relation_type, keywords in family_relation_types.items():
+                            if relation_type in existing_entity or any(kw in existing_desc for kw in keywords):
+                                # 检查描述中是否提到了相关人物
+                                # 例如："祖父是李进的爷爷"，需要检查李进是否与当前实体有关系
+                                
+                                # 获取与通用亲属实体相关的所有边
+                                edges = await self.chunk_entity_relation_graph.get_node_edges(existing_entity)
+                                if edges:
+                                    for src, tgt in edges:
+                                        related_entity = tgt if src == existing_entity else src
+                                        
+                                        # 检查是否有关系指向当前实体的亲属
+                                        # 例如：李双喜是李雷的父亲，而图中有"父亲"实体与李雷相连
+                                        related_edges = await self.chunk_entity_relation_graph.get_node_edges(related_entity)
+                                        
+                                        # 获取当前实体的描述
+                                        entity_desc = description.lower()
+                                        
+                                        # 获取相关实体的描述
+                                        related_node = await self.chunk_entity_relation_graph.get_node(related_entity)
+                                        related_desc = related_node.get("description", "").lower() if related_node else ""
+                                        
+                                        # 检查描述中是否包含关系信息
+                                        should_merge = False
+                                        
+                                        # 检查当前实体描述中是否提到了相关实体
+                                        if related_entity.lower() in entity_desc:
+                                            should_merge = True
+                                        
+                                        # 检查相关实体描述中是否提到了当前实体
+                                        if entity_name.lower() in related_desc:
+                                            should_merge = True
+                                            
+                                        # 检查是否存在关系描述
+                                        for edge_src, edge_tgt in related_edges:
+                                            edge_data = await self.chunk_entity_relation_graph.get_edge(edge_src, edge_tgt)
+                                            if edge_data and "description" in edge_data:
+                                                edge_desc = edge_data["description"].lower()
+                                                # 检查边描述中是否包含当前实体名称
+                                                if entity_name.lower() in edge_desc:
+                                                    should_merge = True
+                                                    break
+                                        
+                                        if should_merge:
+                                            # 找到潜在的融合实体
+                                            potential_merges.append({
+                                                "generic_entity": existing_entity,
+                                                "related_entity": related_entity,
+                                                "relation_type": relation_type
+                                            })
+                
+                # 如果找到潜在的融合实体，进行融合
+                for merge in potential_merges:
+                    generic_entity = merge["generic_entity"]
+                    logger.info(f"发现可融合实体: {generic_entity} -> {entity_name}")
+                    
+                    try:
+                        # 检查目标实体是否已存在
+                        target_exists = await self.chunk_entity_relation_graph.has_node(entity_name)
+                        
+                        # 获取通用实体的描述和其他信息
+                        generic_node = await self.chunk_entity_relation_graph.get_node(generic_entity)
+                        if not generic_node:
+                            continue
+                            
+                        generic_desc = generic_node.get("description", "")
+                        generic_source_id = generic_node.get("source_id", "")
+                        
+                        if target_exists:
+                            # 如果目标实体已存在，合并信息而不是重命名
+                            logger.info(f"目标实体 '{entity_name}' 已存在，将合并信息而不是重命名")
+                            
+                            # 获取目标实体信息
+                            target_node = await self.chunk_entity_relation_graph.get_node(entity_name)
+                            if not target_node:
+                                continue
+                                
+                            # 合并描述
+                            target_desc = target_node.get("description", "")
+                            combined_desc = target_desc
+                            if generic_desc and generic_desc not in target_desc:
+                                combined_desc = f"{target_desc}。{generic_desc}" if target_desc else generic_desc
+                            
+                            # 合并来源ID
+                            target_source_id = target_node.get("source_id", "")
+                            combined_source_id = target_source_id
+                            if generic_source_id:
+                                combined_source_id = f"{target_source_id}{GRAPH_FIELD_SEP}{generic_source_id}" if target_source_id else generic_source_id
+                            
+                            # 更新目标实体
+                            await self.chunk_entity_relation_graph.upsert_node(
+                                entity_name,
+                                {
+                                    "description": combined_desc,
+                                    "entity_type": entity_type,
+                                    "source_id": f"{combined_source_id}{GRAPH_FIELD_SEP}{chunk_id}"
+                                }
+                            )
+                            
+                            # 迁移通用实体的关系到目标实体
+                            edges = await self.chunk_entity_relation_graph.get_node_edges(generic_entity)
+                            if edges:
+                                for src, tgt in edges:
+                                    edge_data = await self.chunk_entity_relation_graph.get_edge(src, tgt)
+                                    if edge_data:
+                                        if src == generic_entity:
+                                            # 检查是否已存在相同的边
+                                            existing_edge = await self.chunk_entity_relation_graph.get_edge(entity_name, tgt)
+                                            if not existing_edge:
+                                                await self.chunk_entity_relation_graph.upsert_edge(entity_name, tgt, edge_data)
+                                        else:  # target == generic_entity
+                                            # 检查是否已存在相同的边
+                                            existing_edge = await self.chunk_entity_relation_graph.get_edge(src, entity_name)
+                                            if not existing_edge:
+                                                await self.chunk_entity_relation_graph.upsert_edge(src, entity_name, edge_data)
+                            
+                            # 删除通用实体
+                            await self.chunk_entity_relation_graph.delete_node(generic_entity)
+                            
+                            # 删除通用实体在向量数据库中的记录
+                            generic_entity_id = compute_mdhash_id(generic_entity, prefix="ent-")
+                            await self.entities_vdb.delete([generic_entity_id])
+                            
+                            logger.info(f"成功将通用实体 '{generic_entity}' 的信息合并到 '{entity_name}'")
+                        else:
+                            # 如果目标实体不存在，直接重命名
+                            # 合并描述
+                            combined_desc = description
+                            if generic_desc and generic_desc not in description:
+                                combined_desc = f"{description}。{generic_desc}" if description else generic_desc
+                            
+                            # 重命名实体（会自动迁移所有关系）
+                            await self.aedit_entity(generic_entity, {
+                                "entity_name": entity_name,
+                                "description": combined_desc,
+                                "entity_type": entity_type,
+                                "source_id": f"{generic_source_id}{GRAPH_FIELD_SEP}{chunk_id}"
+                            })
+                            logger.info(f"成功将通用实体 '{generic_entity}' 重命名为 '{entity_name}'")
+                    except Exception as e:
+                        logger.warning(f"实体融合失败: {e}")
+            
+            # 添加到处理后的实体列表
+            processed_entities.append(entity)
+            
+        return processed_entities
+
+    async def infer_new_relationships(self, entity_types: list[str] = None, bidirectional: bool = False, max_graph_depth: int = 2, cleanup_generic: bool = True) -> None:
+        """利用大模型推理知识图谱中的隐含关系
+        
+        基于已有的实体和关系，使用大模型推理出可能存在的新关系，
+        特别是家庭关系、社交关系等常识性关系。
+
+        Args:
+            entity_types: 要处理的实体类型列表，默认为["人物", "亲戚"]，如果为None则使用默认值
+            bidirectional: 是否进行双向关系推理，默认为False只推理单向关系
+            max_graph_depth: 获取子图的最大深度，默认为2
+            cleanup_generic: 是否在推理后清理通用实体，默认为True
+        """
+        try:
+            # 默认优先处理人物和亲戚类型的实体
+            if entity_types is None:
+                entity_types = ["人物", "亲戚"]
+
+            # 1. 获取当前知识图谱中的所有实体
+            all_entities = await self.chunk_entity_relation_graph.get_all_labels()
+            if not all_entities or len(all_entities) < 2:
+                logger.info("知识图谱中实体数量不足，无法进行关系推理")
+                return
+                
+            # 2. 按实体类型过滤
+            filtered_entities = []
+            for entity in all_entities:
+                node_data = await self.chunk_entity_relation_graph.get_node(entity)
+                if node_data and "entity_type" in node_data:
+                    entity_type = node_data["entity_type"]
+                    if entity_type in entity_types:
+                        filtered_entities.append(entity)
+            
+            if not filtered_entities:
+                logger.info(f"没有找到类型为 {entity_types} 的实体，无法进行关系推理")
+                return
+                
+            logger.info(f"将对 {len(filtered_entities)} 个实体进行关系推理")
+
+            # 3. 获取已处理实体的子图
+            kg_data = {}
+            for entity in filtered_entities:
+                # 获取每个实体的子图
+                subgraph = await self.get_knowledge_graph(entity, max_depth=max_graph_depth)
+                if subgraph:
+                    kg_data[entity] = subgraph
+                    
+            if not kg_data:
+                logger.info("无法获取知识图谱数据，无法进行关系推理")
+                return
+                
+            # 4. 构建提示词
+            prompt = f"""
+    根据以下知识图谱中的实体和关系，请推理出可能存在但尚未明确表示的关系。
+    特别关注以下几类关系：
+    1. 家庭关系（如夫妻、父亲母亲、祖父祖母、兄弟姐妹、儿媳妇、女婿、叔伯姑姨等）
+    2. 社交关系（如朋友、同事、师生等）
+    3. 地理关系（如居住地、工作地等）
+
+    已知实体和关系：
+    {kg_data}
+
+    请特别关注推理以下关系：
+    1. 如果A是B的父亲，C是B的妻子，那么C是A的儿媳妇
+    2. 如果A是B的母亲，C是B的妻子，那么C是A的儿媳妇
+    3. 如果A是B的父亲，C是B的丈夫，那么C是A的女婿
+    4. 如果A是B的母亲，C是B的丈夫，那么C是A的女婿
+    5. 如果A是B的父亲，B是C的父亲，那么A是C的祖父
+    6. 如果A是B的母亲，B是C的父亲，那么A是C的祖母
+
+    请以JSON格式返回推理出的新关系，格式如下：
+    [
+    {{
+        "source_entity": "实体A",
+        "target_entity": "实体B",
+        "relationship_description": "关系描述",
+        "relationship_keywords": "关系类型",
+        "relationship_strength": 0.9  // 0-1之间的置信度
+    }},
+    // 更多关系...
+    ]
+
+    只返回高置信度（>0.8）的关系，不要返回已经存在的关系。
+    请确保source_entity和target_entity都是已知实体中的名称。
+    """
+            
+            # 5. 调用大模型进行推理
+            if not self.llm_model_func:
+                logger.warning("LLM model function not set, skipping relationship inference")
+                return
+                
+            response = await self.llm_model_func(
+                prompt,
+                model=self.llm_model_name,
+                temperature=0.1,  # 使用较低的温度以获得确定性输出
+                max_tokens=self.llm_model_max_token_size,
+            )
+            
+            # 6. 解析响应并添加新关系
+            try:
+                print("response: ", response)
+                # 尝试从响应中提取JSON部分
+                import re
+                import json
+                
+                # 查找可能的JSON数组
+                json_match = re.search(r'\[\s*\{.*\}\s*\]', response, re.DOTALL)
+                
+                if json_match:
+                    json_str = json_match.group(0)
+                    try:
+                        new_relationships = json.loads(json_str)
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"无法解析提取的JSON字符串: {e}")
+                        return
+                else:
+                    # 如果没有找到JSON数组格式，尝试直接解析整个响应
+                    try:
+                        # 注意：这里假设convert_response_to_json函数能够处理非JSON格式的文本
+                        # 并返回解析后的Python对象（列表或字典）
+                        new_relationships = convert_response_to_json(response)
+                    except Exception as e:
+                        logger.warning(f"无法解析大模型响应为JSON: {e}")
+                        return(response)
+                if not isinstance(new_relationships, list):
+                    logger.warning(f"大模型返回的关系格式不正确: {new_relationships}")
+                    return
+                
+                # 记录已处理的关系对，避免重复添加
+                processed_relations = set()
+
+                added_count = 0
+                for rel in new_relationships:
+                    try:
+                        source = rel.get("source_entity")
+                        target = rel.get("target_entity")
+
+                        # 跳过无效的实体
+                        if not source or not target:
+                            continue
+                            
+                        # 如果不允许双向关系且已处理过该关系对（反向），则跳过
+                        relation_key = f"{source}_{target}"
+                        reverse_key = f"{target}_{source}"
+                        
+                        if not bidirectional and reverse_key in processed_relations:
+                            logger.info(f"跳过已处理的反向关系: {target} -> {source}")
+                            continue
+                            
+                        processed_relations.add(relation_key)
+
+                        description = rel.get("relationship_description", "")
+                        keywords = rel.get("relationship_keywords", "")
+                        strength = float(rel.get("relationship_strength", 0.7))
+                        
+                        # 检查实体是否存在
+                        source_exists = await self.chunk_entity_relation_graph.has_node(source)
+                        target_exists = await self.chunk_entity_relation_graph.has_node(target)
+                        
+                        if not source_exists or not target_exists:
+                            logger.warning(f"实体不存在: {source} 或 {target}")
+                            continue
+
+                        # 检查关系是否已存在
+                        existing_edge = await self.chunk_entity_relation_graph.get_edge(source, target)
+                        if existing_edge:
+                            logger.info(f"关系已存在: {source} -> {target}")
+                            continue
+                            
+                        # 添加新关系
+                        relation_data = {
+                            "description": description,
+                            "keywords": keywords,
+                            "source_id": "inferred",
+                            "weight": strength
+                        }
+                        
+                        await self.acreate_relation(source, target, relation_data)
+                        added_count += 1
+                        logger.info(f"成功添加关系: {source} -> {target}, 描述: {description}")
+                        
+                    except Exception as e:
+                        logger.error(f"添加推理关系时出错: {e}")
+                        continue
+                        
+                logger.info(f"成功添加 {added_count} 个推理关系")
+                
+            except Exception as e:
+                logger.error(f"解析大模型响应时出错: {e}")
+                
+        except Exception as e:
+            logger.error(f"关系推理过程中出错: {e}")

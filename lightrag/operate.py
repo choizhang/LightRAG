@@ -414,6 +414,7 @@ async def extract_entities(
                 statistic_data["llm_cache"] += 1
                 return cached_return
             statistic_data["llm_call"] += 1
+            print('_user_llm_func_with_cache111', input_text)
             if history_messages:
                 res: str = await use_llm_func(
                     input_text, history_messages=history_messages
@@ -429,6 +430,7 @@ async def extract_entities(
                     cache_type="extract",
                 ),
             )
+            print('_user_llm_func_with_cache222', res)
             return res
 
         if history_messages:
@@ -518,6 +520,52 @@ async def extract_entities(
             maybe_nodes[k].extend(v)
         for k, v in m_edges.items():
             maybe_edges[tuple(sorted(k))].extend(v)
+
+
+    # 在这里添加实体融合处理
+    # 将实体列表转换为适合 _process_entities_for_insertion 方法的格式
+    all_entities = []
+    for entity_name, entity_data_list in maybe_nodes.items():
+        # 合并同一实体的多个数据项
+        entity_type = sorted(
+            Counter([dp["entity_type"] for dp in entity_data_list]).items(),
+            key=lambda x: x[1],
+            reverse=True,
+        )[0][0] if entity_data_list else "UNKNOWN"
+        
+        description = "; ".join(set([dp["description"] for dp in entity_data_list]))
+        source_id = GRAPH_FIELD_SEP.join(set([dp["source_id"] for dp in entity_data_list]))
+        
+        all_entities.append({
+            "entity_name": entity_name,
+            "entity_type": entity_type,
+            "description": description,
+            "source_id": source_id
+        })
+    
+    # 如果 global_config 中有 _self 引用，调用实体融合方法
+    if "_process_entities_for_insertion" in global_config and global_config["_process_entities_for_insertion"] is not None:
+        process_func = global_config["_process_entities_for_insertion"]
+        # 获取一个 chunk_id 作为源
+        chunk_id = next(iter(chunks.keys())) if chunks else "auto-extract"
+        # 调用实体融合处理方法
+        all_entities = await process_func(
+            all_entities, chunk_id
+        )
+        
+        # 将处理后的实体重新转换为 maybe_nodes 格式
+        maybe_nodes = defaultdict(list)
+        for entity in all_entities:
+            entity_name = entity.get("entity_name")
+            if entity_name:
+                maybe_nodes[entity_name].append({
+                    "entity_name": entity_name,
+                    "entity_type": entity.get("entity_type", "UNKNOWN"),
+                    "description": entity.get("description", ""),
+                    "source_id": entity.get("source_id", ""),
+                    "metadata": {"created_at": time.time()}
+                })
+
 
     all_entities_data = await asyncio.gather(
         *[
@@ -617,6 +665,9 @@ async def kg_query(
         query, query_param, global_config, hashing_kv
     )
 
+    print(f"High-level keywords: {hl_keywords}")
+    print(f"Low-level  keywords: {ll_keywords}")
+
     logger.debug(f"High-level keywords: {hl_keywords}")
     logger.debug(f"Low-level  keywords: {ll_keywords}")
 
@@ -650,6 +701,7 @@ async def kg_query(
         text_chunks_db,
         query_param,
     )
+    print('context', context)
 
     if query_param.only_need_context:
         return context
