@@ -36,7 +36,7 @@ from .operate import (
     mix_kg_vector_query,
     naive_query,
 )
-from .prompt import GRAPH_FIELD_SEP, PROMPTS
+from .prompt_cn import GRAPH_FIELD_SEP, PROMPTS
 from .utils import (
     EmbeddingFunc,
     always_get_an_event_loop,
