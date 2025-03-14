@@ -11,6 +11,9 @@ from lightrag.utils import EmbeddingFunc
 from lightrag import LightRAG, QueryParam
 from lightrag.kg.shared_storage import initialize_pipeline_status
 from lightrag.llm.siliconcloud import siliconcloud_embedding
+from lightrag.utils import setup_logger
+
+setup_logger("lightrag", level="DEBUG")
 
 # Apply nest_asyncio to solve event loop issues
 nest_asyncio.apply()
@@ -117,7 +120,6 @@ async def initialize_rag():
             max_token_size=8192,
             func=embedding_func,
         ),
-        log_level="DEBUG",
     )
 
     await rag.initialize_storages()
@@ -172,8 +174,8 @@ def main():
     }
     # rag.insert_custom_kg(custom_kg)
 
-    # with open("./ragtest/lilei/lilei_8.txt", "r") as f:
-    #     rag.insert(f.read())
+    with open("./ragtest/lilei/lilei_1.txt", "r") as f:
+        rag.insert(f.read())
 
     # 添加关系推理
     # asyncio.run(rag.infer_new_relationships())
