@@ -64,4 +64,7 @@ gui/
 
 # unit-test files
 test_*
+
+# Cline files
+memory-bank/
 knowledge_graph.html
