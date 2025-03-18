@@ -368,7 +368,7 @@ def parse_args(is_uvicorn_mode: bool = False) -> argparse.Namespace:
     )
 
     # Select Document loading tool (DOCLING, DEFAULT)
-    args.document_loading_engine = get_env_value("DOCUMENT_LOADING_ENGINE", "DEFAULT")
+    args.document_loading_engine = get_env_value("DOCUMENT_LOADING_ENGINE", "DOCLING")
 
     ollama_server_infos.LIGHTRAG_MODEL = args.simulated_model_name
 

@@ -8,7 +8,7 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 from lightrag.utils import EmbeddingFunc
-from lightrag import LightRAG, QueryParam
+from lightrag import LightRAG
 from lightrag.kg.shared_storage import initialize_pipeline_status
 from lightrag.llm.siliconcloud import siliconcloud_embedding
 from lightrag.utils import setup_logger
@@ -174,8 +174,18 @@ def main():
     }
     # rag.insert_custom_kg(custom_kg)
 
-    with open("./ragtest/lilei/lilei_1.txt", "r") as f:
-        rag.insert(f.read())
+    # with open("./ragtest/lilei/lilei_1.txt", "r") as f:
+    #     rag.insert(f.read())
+
+    # with open("./ragtest/cd/111.pdf", "r") as f:
+    #     rag.insert(f.read())
+
+    import textract
+
+    file_path = "./ragtest/cd/111.pdf"
+    text_content = textract.process(file_path)
+
+    rag.insert(text_content.decode("utf-8"))
 
     # 添加关系推理
     # asyncio.run(rag.infer_new_relationships())
@@ -195,14 +205,14 @@ def main():
     #     rag.query(_question, param=QueryParam(mode="global"))
     # )
 
-    print(
-        rag.query(
-            _question,
-            param=QueryParam(
-                mode="hybrid", only_need_context=False, only_need_prompt=False, top_k=60
-            ),
-        )
-    )
+    # print(
+    #     rag.query(
+    #         _question,
+    #         param=QueryParam(
+    #             mode="hybrid", only_need_context=False, only_need_prompt=False, top_k=60
+    #         ),
+    #     )
+    # )
 
 
 if __name__ == "__main__":
