@@ -1,38 +1,61 @@
 import os
 import re
 import json
-from lightrag import LightRAG, QueryParam
-from lightrag.llm.openai import openai_complete_if_cache, openai_embed
-from lightrag.utils import EmbeddingFunc, always_get_an_event_loop
 import numpy as np
+from google import genai
+from google.genai import types
+from dotenv import load_dotenv
+
+from lightrag import LightRAG, QueryParam
+from lightrag.llm.siliconcloud import siliconcloud_embedding
+from lightrag.utils import EmbeddingFunc, always_get_an_event_loop
+
+load_dotenv()
+gemini_api_key = os.getenv("GEMINI_API_KEY")
+siliconflow_api_key = os.getenv("SILICONFLOW_API_KEY")
 
 
-## For Upstage API
-# please check if embedding_dim=4096 in lightrag.py and llm.py in lightrag direcotry
 async def llm_model_func(
-    prompt, system_prompt=None, history_messages=[], **kwargs
+    prompt, system_prompt=None, history_messages=[], keyword_extraction=False, **kwargs
 ) -> str:
-    return await openai_complete_if_cache(
-        "solar-mini",
-        prompt,
-        system_prompt=system_prompt,
-        history_messages=history_messages,
-        api_key=os.getenv("UPSTAGE_API_KEY"),
-        base_url="https://api.upstage.ai/v1/solar",
-        **kwargs,
+    # 1. Initialize the GenAI Client with your Gemini API Key
+    client = genai.Client(api_key=gemini_api_key)
+
+    # 2. Combine prompts: system prompt, history, and user prompt
+    if history_messages is None:
+        history_messages = []
+
+    combined_prompt = ""
+    if system_prompt:
+        combined_prompt += f"{system_prompt}\n"
+
+    for msg in history_messages:
+        # Each msg is expected to be a dict: {"role": "...", "content": "..."}
+        combined_prompt += f"{msg['role']}: {msg['content']}\n"
+
+    # Finally, add the new user prompt
+    combined_prompt += f"user: {prompt}"
+
+    # 3. Call the Gemini model
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=[combined_prompt],
+        config=types.GenerateContentConfig(
+            max_output_tokens=5000, temperature=0, top_k=10
+        ),
     )
+
+    # 4. Return the response text
+    return response.text
 
 
 async def embedding_func(texts: list[str]) -> np.ndarray:
-    return await openai_embed(
+    return await siliconcloud_embedding(
         texts,
-        model="solar-embedding-1-large-query",
-        api_key=os.getenv("UPSTAGE_API_KEY"),
-        base_url="https://api.upstage.ai/v1/solar",
+        model="BAAI/bge-m3",
+        api_key=siliconflow_api_key,
+        max_token_size=512,
     )
-
-
-## /For Upstage API
 
 
 def extract_queries(file_path):
@@ -77,7 +100,7 @@ def run_queries_and_save_to_json(
                 first_entry = False
             elif error:
                 json.dump(error, err_file, ensure_ascii=False, indent=4)
-                err_file.write("\n")
+                err_file.write(",\n")
 
         result_file.write("\n]")
 
@@ -85,19 +108,18 @@ def run_queries_and_save_to_json(
 if __name__ == "__main__":
     cls = "mix"
     mode = "hybrid"
-    WORKING_DIR = f"../{cls}"
+    WORKING_DIR = f"./{cls}"
 
-    rag = LightRAG(working_dir=WORKING_DIR)
     rag = LightRAG(
         working_dir=WORKING_DIR,
         llm_model_func=llm_model_func,
         embedding_func=EmbeddingFunc(
-            embedding_dim=4096, max_token_size=8192, func=embedding_func
+            embedding_dim=1024, max_token_size=512, func=embedding_func
         ),
     )
     query_param = QueryParam(mode=mode)
 
-    base_dir = "../datasets/questions"
+    base_dir = "./datasets/questions"
     queries = extract_queries(f"{base_dir}/{cls}_questions.txt")
     run_queries_and_save_to_json(
         queries, rag, query_param, f"{base_dir}/result.json", f"{base_dir}/errors.json"

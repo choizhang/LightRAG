@@ -1,0 +1,194 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd"><key id="d9" for="edge" attr.name="file_path" attr.type="string"/>
+<key id="d8" for="edge" attr.name="source_id" attr.type="string"/>
+<key id="d7" for="edge" attr.name="keywords" attr.type="string"/>
+<key id="d6" for="edge" attr.name="description" attr.type="string"/>
+<key id="d5" for="edge" attr.name="weight" attr.type="double"/>
+<key id="d4" for="node" attr.name="file_path" attr.type="string"/>
+<key id="d3" for="node" attr.name="source_id" attr.type="string"/>
+<key id="d2" for="node" attr.name="description" attr.type="string"/>
+<key id="d1" for="node" attr.name="entity_type" attr.type="string"/>
+<key id="d0" for="node" attr.name="entity_id" attr.type="string"/>
+<graph edgedefault="undirected"><node id="Robot">
+  <data key="d0">Robot</data>
+  <data key="d1">organization</data>
+  <data key="d2">家庭助手机器人，负责与李进交流并记录信息。</data>
+  <data key="d3">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d4">./ragtest/lilei/lilei_1.txt</data>
+</node>
+<node id="李进">
+  <data key="d0">李进</data>
+  <data key="d1">person</data>
+  <data key="d2">蒙新小学一年级学生，住在四川省成都市高新区新通大道千川阅小区6-1203，家庭成员有爸爸李雷、妈妈韩梅梅、爷爷奶奶。</data>
+  <data key="d3">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d4">./ragtest/lilei/lilei_1.txt</data>
+</node>
+<node id="蒙新小学">
+  <data key="d0">蒙新小学</data>
+  <data key="d1">organization</data>
+  <data key="d2">李进就读的小学。</data>
+  <data key="d3">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d4">./ragtest/lilei/lilei_1.txt</data>
+</node>
+<node id="龙灯山社区">
+  <data key="d0">龙灯山社区</data>
+  <data key="d1">geo</data>
+  <data key="d2">李进居住的社区。</data>
+  <data key="d3">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d4">./ragtest/lilei/lilei_1.txt</data>
+</node>
+<node id="四川省成都市高新区新通大道千川阅小区6-1203">
+  <data key="d0">四川省成都市高新区新通大道千川阅小区6-1203</data>
+  <data key="d1">geo</data>
+  <data key="d2">李进的详细家庭住址。</data>
+  <data key="d3">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d4">./ragtest/lilei/lilei_1.txt</data>
+</node>
+<node id="李雷">
+  <data key="d0">李雷</data>
+  <data key="d1">person</data>
+  <data key="d2">李进的爸爸，在移动公司上班的程序员。</data>
+  <data key="d3">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d4">./ragtest/lilei/lilei_1.txt</data>
+</node>
+<node id="韩梅梅">
+  <data key="d0">韩梅梅</data>
+  <data key="d1">person</data>
+  <data key="d2">李进的妈妈，初中物理老师，手机号码是18084268123。</data>
+  <data key="d3">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d4">./ragtest/lilei/lilei_1.txt</data>
+</node>
+<node id="移动公司">
+  <data key="d0">移动公司</data>
+  <data key="d1">organization</data>
+  <data key="d2">李雷上班的公司。</data>
+  <data key="d3">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d4">./ragtest/lilei/lilei_1.txt</data>
+</node>
+<node id="家庭助手机器人">
+  <data key="d0">家庭助手机器人</data>
+  <data key="d1">category</data>
+  <data key="d2">一种提供家庭帮助的机器人类型。</data>
+  <data key="d3">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d4">./ragtest/lilei/lilei_1.txt</data>
+</node>
+<node id="学生">
+  <data key="d0">学生</data>
+  <data key="d1">category</data>
+  <data key="d2">李进的身份，表明他正在接受教育。</data>
+  <data key="d3">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d4">./ragtest/lilei/lilei_1.txt</data>
+</node>
+<node id="一年级">
+  <data key="d0">一年级</data>
+  <data key="d1">category</data>
+  <data key="d2">李进的年级，表明他处于小学教育的初级阶段。</data>
+  <data key="d3">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d4">./ragtest/lilei/lilei_1.txt</data>
+</node>
+<node id="初中物理老师">
+  <data key="d0">初中物理老师</data>
+  <data key="d1">category</data>
+  <data key="d2">韩梅梅的职业，表明她在中学教授物理。</data>
+  <data key="d3">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d4">./ragtest/lilei/lilei_1.txt</data>
+</node>
+<node id="程序员">
+  <data key="d0">程序员</data>
+  <data key="d1">category</data>
+  <data key="d2">李雷的职业，表明他从事软件开发工作。</data>
+  <data key="d3">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d4">./ragtest/lilei/lilei_1.txt</data>
+</node>
+<node id="篮球">
+  <data key="d0">篮球</data>
+  <data key="d1">category</data>
+  <data key="d2">李进的爷爷喜欢的运动。</data>
+  <data key="d3">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d4">./ragtest/lilei/lilei_1.txt</data>
+</node>
+<node id="李进的爷爷">
+  <data key="d0">李进的爷爷</data>
+  <data key="d3">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d2">李进的爷爷喜欢打篮球。</data>
+  <data key="d1">UNKNOWN</data>
+  <data key="d4">./ragtest/lilei/lilei_1.txt</data>
+</node>
+<edge source="Robot" target="李进">
+  <data key="d5">10.0</data>
+  <data key="d6">Robot与李进进行对话，收集李进的个人信息。</data>
+  <data key="d7">对话, 信息收集</data>
+  <data key="d8">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d9">./ragtest/lilei/lilei_1.txt</data>
+</edge>
+<edge source="李进" target="蒙新小学">
+  <data key="d5">10.0</data>
+  <data key="d6">李进在蒙新小学读书。</data>
+  <data key="d7">教育, 就读学校</data>
+  <data key="d8">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d9">./ragtest/lilei/lilei_1.txt</data>
+</edge>
+<edge source="李进" target="龙灯山社区">
+  <data key="d5">10.0</data>
+  <data key="d6">李进住在龙灯山社区。</data>
+  <data key="d7">居住地, 社区关系</data>
+  <data key="d8">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d9">./ragtest/lilei/lilei_1.txt</data>
+</edge>
+<edge source="李进" target="四川省成都市高新区新通大道千川阅小区6-1203">
+  <data key="d5">10.0</data>
+  <data key="d6">李进的家庭住址是四川省成都市高新区新通大道千川阅小区6-1203。</data>
+  <data key="d7">家庭住址, 居住地</data>
+  <data key="d8">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d9">./ragtest/lilei/lilei_1.txt</data>
+</edge>
+<edge source="李进" target="李雷">
+  <data key="d5">10.0</data>
+  <data key="d6">李雷是李进的爸爸。</data>
+  <data key="d7">家庭关系, 父子关系</data>
+  <data key="d8">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d9">./ragtest/lilei/lilei_1.txt</data>
+</edge>
+<edge source="李进" target="韩梅梅">
+  <data key="d5">10.0</data>
+  <data key="d6">韩梅梅是李进的妈妈。</data>
+  <data key="d7">家庭关系, 母子关系</data>
+  <data key="d8">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d9">./ragtest/lilei/lilei_1.txt</data>
+</edge>
+<edge source="李进" target="一年级">
+  <data key="d5">10.0</data>
+  <data key="d6">李进目前就读一年级。</data>
+  <data key="d7">教育阶段, 年级</data>
+  <data key="d8">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d9">./ragtest/lilei/lilei_1.txt</data>
+</edge>
+<edge source="李雷" target="移动公司">
+  <data key="d5">10.0</data>
+  <data key="d6">李雷在移动公司上班。</data>
+  <data key="d7">工作, 就职公司</data>
+  <data key="d8">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d9">./ragtest/lilei/lilei_1.txt</data>
+</edge>
+<edge source="李雷" target="程序员">
+  <data key="d5">10.0</data>
+  <data key="d6">李雷的职业是程序员。</data>
+  <data key="d7">职业, 编程</data>
+  <data key="d8">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d9">./ragtest/lilei/lilei_1.txt</data>
+</edge>
+<edge source="韩梅梅" target="初中物理老师">
+  <data key="d5">10.0</data>
+  <data key="d6">韩梅梅的职业是初中物理老师。</data>
+  <data key="d7">职业, 教师</data>
+  <data key="d8">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d9">./ragtest/lilei/lilei_1.txt</data>
+</edge>
+<edge source="篮球" target="李进的爷爷">
+  <data key="d5">10.0</data>
+  <data key="d6">李进的爷爷喜欢打篮球。</data>
+  <data key="d7">爱好, 运动</data>
+  <data key="d8">chunk-7e66dfdb57adb6ded618bf24c4c37640</data>
+  <data key="d9">./ragtest/lilei/lilei_1.txt</data>
+</edge>
+</graph></graphml>

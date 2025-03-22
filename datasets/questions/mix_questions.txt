@@ -1,0 +1,145 @@
+- User 1: [Historian]
+    - Task 1: Analyze the historical context of Jewish community in pre-WWII Europe
+        - Question 1: Describe the political situation in Europe that led to the persecution of Jewish communities.
+        - Question 2: Identify key figures or institutions involved in the selection and measurement process of Jewish individuals at Auschwitz.
+        - Question 3: Explain the role of the Anatomical Institute of Strasbourg in the project led by August Hirt.
+        - Question 4: Discuss the ethical implications of the research conducted by August Hirt and his team.
+        - Question 5: How did the methods used for measurement and selection of Jewish individuals reflect the broader social and political attitudes of the time?
+    - Task 2: Identify and evaluate the ethical concerns related to the use of human remains in scientific research.
+        - Question 1: What are the ethical considerations involved in using human remains for scientific research?
+        - Question 2: Discuss the rights of individuals and families of the 86 victims who were part of Hirt’s collection.
+        - Question 3: Explain how the use of body measurements and anthropological techniques could be misused.
+        - Question 4: Outline the steps that should be taken to ensure ethical handling of human remains in scientific research.
+        - Question 5: Discuss the potential impact of uncovering and acknowledging historical scientific practices involving human remains.
+    - Task 3: Compare and contrast different historical collections of human remains with others.
+        - Question 1: Provide examples of historical collections similar to Hirt’s in scope and purpose.
+        - Question 2: Compare Hirt’s collection with other historical collections, noting similarities and differences.
+        - Question 3: Discuss the preservation and treatment of human remains in other historical collections.
+        - Question 4: Analyze the methods and techniques used in other historical collections.
+        - Question 5: Explain how these other collections impacted or influenced the scientific and cultural context of the times.
+    - Task 4: Examine the role of scientific institutions in WWII Nazi Germany.
+        - Question 1: Discuss the involvement of scientific institutions in Nazi Germany’s scientific research during WWII.
+        - Question 2: Identify the role of universities and research centers such as the Anatomical Institute in fostering or hindering the goals of the Nazi regime.
+        - Question 3: Explain how the scientific community of the time contributed to or resisted the projects.
+        - Question 4: Analyze the impact of Nazi-era science on post-war scientific research.
+        - Question 5: Evaluate the ethical responsibilities of scientific institutions during times of conflict.
+    - Task 5: Explore the process of uncovering and understanding historical atrocities.
+        - Question 1: Describe the process of uncovering and understanding the atrocities committed during WWII.
+        - Question 2: Identify the challenges and difficulties faced in uncovering historical atrocities.
+        - Question 3: Analyze the process of documenting and certifying the authenticity of historical evidence.
+        - Question 4: Evaluate the significance of discovering and bringing to light historical atrocities.
+        - Question 5: Discuss the potential for using historical atrocities to inform contemporary ethical standards.
+
+- User 2: [Anthropologist]
+    - Task 1: Evaluate the significance of the skeletal and anthropological data collected by August Hirt.
+        - Question 1: Analyze the types of anthropological data collected by Hirt and their significance.
+        - Question 2: Evaluate the processes used to measure and analyze the 86 individuals in Hirt’s collection.
+        - Question 3: Discuss how the data collected by Hirt can be integrated into modern anthropological research.
+        - Question 4: Assess the scientific value and limitations of the anthropological data collected by Hirt.
+        - Question 5: Explain the ethical considerations involved in using the anthropological data collected by Hirt in current research.
+    - Task 2: Identify and analyze the potential errors and biases in Hirt’s anthropological measurements and data analysis.
+        - Question 1: Detail the methods used by Hirt in collecting anthropological data.
+        - Question 2: Identify potential sources of error and bias in Hirt’s anthropological measurements.
+        - Question 3: Evaluate the accuracy and reliability of the data collected by Hirt.
+        - Question 4: Discuss how the biases in Hirt’s data analysis could have influenced the conclusions drawn by Hirt and his team.
+        - Question 5: Explain the steps that should be taken to correct for the identified errors and biases in Hirt’s data.
+    - Task 3: Investigate the use of anthropological data for scientific research and its ethical implications.
+        - Question 1: Discuss the ethical considerations involved in using anthropological data for scientific research.
+        - Question 2: Evaluate the methods and techniques used in Hirt’s collection and their ethical implications.
+        - Question 3: Analyze the impact of Hirt’s research on the modern field of anthropology.
+        - Question 4: Discuss the potential for misuse of anthropological data and the need for ethical guidelines.
+        - Question 5: Explain the importance of informed consent in the collection and use of anthropological data.
+    - Task 4: Compare and contrast Hirt’s methods with modern anthropological techniques.
+        - Question 1: Outline the methods used by Hirt in collecting and analyzing anthropological data.
+        - Question 2: Provide examples of modern techniques in anthropological research.
+        - Question 3: Compare and contrast Hirt’s methods with modern techniques.
+        - Question 4: Identify the potential advantages and disadvantages of Hirt’s methods compared to modern techniques.
+        - Question 5: Discuss the evolution of anthropological data collection and analysis over time.
+    - Task 5: Examine the impact of historical and contemporary scientific research on colonial and ethnic relations.
+        - Question 1: Discuss the role of scientific research in shaping colonial and ethnic relations.
+        - Question 2: Evaluate the ways in which Hirt’s data has been used or misused in discussions of ethnic and racial differences.
+        - Question 3: Analyze the long-term impact of historical scientific research on contemporary debates.
+        - Question 4: Discuss the responsibilities of modern scientists in addressing the legacy of historical scientific research.
+        - Question 5: Examine the potential for using historical and current scientific research to promote understanding and reconciliation.
+
+- User 3: [Medical Historian]
+    - Task 1: Analyze the historical significance of the clinical measurements taken during the Natzweiler-Struthof project.
+        - Question 1: Explain the objectives of the clinical measurements taken at Natzweiler-Struthof.
+        - Question 2: Identify the key findings of the clinical measurements taken by Hirt’s team.
+        - Question 3: Discuss the methods used for collecting and analyzing the clinical data.
+        - Question 4: Evaluate the medical and ethical implications of the clinical measurements taken at Natzweiler-Struthof.
+        - Question 5: Analyze the impact of the clinical measurements on modern medical practices.
+    - Task 2: Investigate the role of medical experimentation and research in Nazi Germany.
+        - Question 1: Describe the context of medical experimentation and research in Nazi Germany.
+        - Question 2: Identify key figures and institutions involved in medical experimentation and research.
+        - Question 3: Analyze the methods and techniques used in medical research during this period.
+        - Question 4: Evaluate the ethics and legality of the medical research conducted during this period.
+        - Question 5: Discuss the long-term impact of Nazi-era medical research on contemporary medical practices and ethics.
+    - Task 3: Examine the use of human subjects in medical research during WWII.
+        - Question 1: Discuss the policies and practices regarding the use of human subjects in medical research during WWII.
+        - Question 2: Analyze the reasons why medical research often used vulnerable populations as subjects.
+        - Question 3: Evaluate the ethical concerns and criticisms regarding the use of human subjects.
+        - Question 4: Outline the steps taken to prevent the misuse of human subjects in medical research.
+        - Question 5: Discuss the potential for using historical case studies to inform contemporary medical research.
+    - Task 4: Compare and contrast medical research practices in Nazi Germany with modern standards.
+        - Question 1: Outline the medical research practices in Nazi Germany.
+        - Question 2: Provide examples of modern medical research practices.
+        - Question 3: Compare and contrast the medical research practices between Nazi Germany and modern times.
+        - Question 4: Identify key differences and similarities between the two.
+        - Question 5: Discuss the evolution of medical research practices and the role of ethical guidelines.
+    - Task 5: Explore the impact of historical scientific research on modern policies and practices in healthcare.
+        - Question 1: Describe the impact of historical scientific research, including the practices of Hirt’s team, on modern healthcare policies and practices.
+        - Question 2: Evaluate the role of historical case studies in shaping modern healthcare regulations.
+        - Question 3: Discuss the ethical responsibilities of healthcare professionals in addressing the legacy of historical scientific practices.
+        - Question 4: Analyze the ways in which historical scientific practices can inform contemporary research and practice.
+        - Question 5: Examine the potential for historical scientific research to contribute to the betterment of healthcare systems.
+
+- User 4: [Geneticist]
+    - Task 1: Analyze the genetic implications of Hirt’s collection and the data related to the 86 individuals who were part of the project.
+        - Question 1: Identify the genetic markers that might have been collected and analyzed by Hirt and his team.
+        - Question 2: Discuss how the genetic data collected by Hirt could inform contemporary genetic studies.
+        - Question 3: Evaluate the ethical considerations associated with using the genetic data collected during this project.
+        - Question 4: Analyze the impact of Hirt’s genetic data on the field of genetics.
+        - Question 5: Explain the significance of including historical genetic data in modern genetic research.
+    - Task 2: Investigate the ethical implications of using human remains in genetic research.
+        - Question 1: Identify the ethical considerations involved in using human remains in genetic research.
+        - Question 2: Evaluate the potential misuse of genetic data collected from human remains.
+        - Question 3: Analyze the responsibilities of genetic researchers in ensuring the ethical use of genetic data.
+        - Question 4: Discuss the role of informed consent in genetic research involving human remains.
+        - Question 5: Explore the potential benefits and risks of incorporating historical genetic data into contemporary genetic research.
+    - Task 3: Examine the use of historical genetic data in forensic analyses.
+        - Question 1: Describe the applications of historical genetic data in forensic analyses.
+        - Question 2: Provide examples of how historical genetic data has been used in forensic analyses.
+        - Question 3: Analyze the role of historical genetic data in identifying unknown individuals.
+        - Question 4: Discuss the limitations of using historical genetic data for forensic analysis.
+        - Question 5: Explore the potential ethical implications of using historical genetic data in forensic contexts.
+    - Task 4: Compare and contrast historical genetic research with modern genetic research methods.
+        - Question 1: Compare the methods used by Hirt and his team to the modern methods employed in genetic research.
+        - Question 2: Evaluate the advancements in genetic research technology since the time of Hirt’s project.
+        - Question 3: Analyze the cultural and ethical context of genetic research during Hirt’s time.
+        - Question 4: Discuss the potential for using historical genetic data to inform contemporary research.
+        - Question 5: Explore the evolving role of genetic research in understanding human history.
+    - Task 5: Explore the impact of Hirt’s research on the ethical landscape of genetic research.
+        - Question 1: Discuss the ethical landscape of genetic research before Hirt’s project.
+        - Question 2: Analyze the impact of Hirt’s project on the ethical considerations in genetic research.
+        - Question 3: Evaluate the long-term influence of Hirt’s project on modern genetic research.
+        - Question 4: Discuss the potential for using historical case studies to improve ethical standards in genetic research.
+        - Question 5: Examine the historical context of genetic research and its ethical implications.
+
+- User 5: [Jurist]
+    - Task 1: Analyze the legal and ethical implications of the scientific research conducted during WWII.
+        - Question 1: Describe the legal and ethical standards of scientific research during WWII.
+        - Question 2: Identify the role of international legal standards in regulating scientific research.
+        - Question 3: Evaluate the adherence or non-adherence to these standards by Hirt’s research.
+        - Question 4: Assess the legal ramifications of scientific misconduct during WWII.
+        - Question 5: Discuss the impact of historical cases of scientific misconduct on contemporary legal and ethical frameworks.
+    - Task 2: Examine the legal and ethical responsibilities of scientific institutions in Nazi Germany.
+        - Question 1: Describe the roles and responsibilities of Nazi-era scientific institutions.
+        - Question 2: Identify key institutions and their involvement in scientific research during the Nazi era.
+        - Question 3: Evaluate the ethical responsibilities of these institutions.
+        - Question 4: Analyze the legal and ethical dilemmas faced by these institutions.
+        - Question 5: Discuss the legal and ethical implications of scientific misconduct in Nazi Germany.
+    - Task 3: Investigate the legal and ethical considerations in the preservation and use of historical scientific collections.
+        - Question 1: Describe the legal and ethical standards for preserving and using historical scientific collections.
+        - Question 2: Identify the challenges and controversies surrounding the use of historical scientific collections.
+        - Question 3: Evaluate the responsibilities of
