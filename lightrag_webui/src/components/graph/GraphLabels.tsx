@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback } from 'react'
 import { AsyncSelect } from '@/components/ui/AsyncSelect'
 import { useSettingsStore } from '@/stores/settings'
 import { useGraphStore } from '@/stores/graph'
@@ -12,38 +12,8 @@ const GraphLabels = () => {
   const { t } = useTranslation()
   const label = useSettingsStore.use.queryLabel()
   const allDatabaseLabels = useGraphStore.use.allDatabaseLabels()
-  const rawGraph = useGraphStore.use.rawGraph()
-  const labelsLoadedRef = useRef(false)
 
-  // Track if a fetch is in progress to prevent multiple simultaneous fetches
-  const fetchInProgressRef = useRef(false)
-
-  // Fetch labels once on component mount, using global flag to prevent duplicates
-  useEffect(() => {
-    // Check if we've already attempted to fetch labels in this session
-    const labelsFetchAttempted = useGraphStore.getState().labelsFetchAttempted
-
-    // Only fetch if we haven't attempted in this session and no fetch is in progress
-    if (!labelsFetchAttempted && !fetchInProgressRef.current) {
-      fetchInProgressRef.current = true
-      // Set global flag to indicate we've attempted to fetch in this session
-      useGraphStore.getState().setLabelsFetchAttempted(true)
-
-      console.log('Fetching graph labels (once per session)...')
-
-      useGraphStore.getState().fetchAllDatabaseLabels()
-        .then(() => {
-          labelsLoadedRef.current = true
-          fetchInProgressRef.current = false
-        })
-        .catch((error) => {
-          console.error('Failed to fetch labels:', error)
-          fetchInProgressRef.current = false
-          // Reset global flag to allow retry
-          useGraphStore.getState().setLabelsFetchAttempted(false)
-        })
-    }
-  }, []) // Empty dependency array ensures this only runs once on mount
+  // Remove initial label fetch effect as it's now handled by fetchGraph based on lastSuccessfulQueryLabel
 
   const getSearchEngine = useCallback(() => {
     // Create search engine
@@ -87,28 +57,40 @@ const GraphLabels = () => {
   )
 
   const handleRefresh = useCallback(() => {
-    const currentLabel = useSettingsStore.getState().queryLabel
-
+    // Reset fetch status flags
+    useGraphStore.getState().setLabelsFetchAttempted(false)
     useGraphStore.getState().setGraphDataFetchAttempted(false)
 
-    useGraphStore.getState().reset()
+    // Clear last successful query label to ensure labels are fetched
+    useGraphStore.getState().setLastSuccessfulQueryLabel('')
 
-    useSettingsStore.getState().setQueryLabel(currentLabel)
-  }, [])
+    // Get current label
+    const currentLabel = useSettingsStore.getState().queryLabel
+
+    // If current label is empty, use default label '*'
+    if (!currentLabel) {
+      useSettingsStore.getState().setQueryLabel('*')
+    } else {
+      // Trigger data reload
+      useSettingsStore.getState().setQueryLabel('')
+      setTimeout(() => {
+        useSettingsStore.getState().setQueryLabel(currentLabel)
+      }, 0)
+    }
+  }, []);
 
   return (
     <div className="flex items-center">
-      {rawGraph && (
-        <Button
-          size="icon"
-          variant={controlButtonVariant}
-          onClick={handleRefresh}
-          tooltip={t('graphPanel.graphLabels.refreshTooltip')}
-          className="mr-1"
-        >
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-      )}
+      {/* Always show refresh button */}
+      <Button
+        size="icon"
+        variant={controlButtonVariant}
+        onClick={handleRefresh}
+        tooltip={t('graphPanel.graphLabels.refreshTooltip')}
+        className="mr-1"
+      >
+        <RefreshCw className="h-4 w-4" />
+      </Button>
       <AsyncSelect<string>
         className="ml-2"
         triggerClassName="max-h-8"
@@ -123,29 +105,23 @@ const GraphLabels = () => {
         placeholder={t('graphPanel.graphLabels.placeholder')}
         value={label !== null ? label : '*'}
         onChange={(newLabel) => {
-          const currentLabel = useSettingsStore.getState().queryLabel
+          const currentLabel = useSettingsStore.getState().queryLabel;
 
           // select the last item means query all
           if (newLabel === '...') {
-            newLabel = '*'
+            newLabel = '*';
           }
 
-          // Reset the fetch attempted flag to force a new data fetch
-          useGraphStore.getState().setGraphDataFetchAttempted(false)
-
-          // Clear current graph data to ensure complete reload when label changes
-          if (newLabel !== currentLabel) {
-            const graphStore = useGraphStore.getState();
-            // Reset the all graph objects and status
-            graphStore.reset();
-          }
-
+          // Handle reselecting the same label
           if (newLabel === currentLabel && newLabel !== '*') {
-            // reselect the same itme means qery all
-            useSettingsStore.getState().setQueryLabel('*')
-          } else {
-            useSettingsStore.getState().setQueryLabel(newLabel)
+            newLabel = '*';
           }
+
+          // Reset graphDataFetchAttempted flag to ensure data fetch is triggered
+          useGraphStore.getState().setGraphDataFetchAttempted(false);
+
+          // Update the label to trigger data loading
+          useSettingsStore.getState().setQueryLabel(newLabel);
         }}
         clearable={false}  // Prevent clearing value on reselect
       />

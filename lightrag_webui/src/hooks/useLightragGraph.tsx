@@ -8,39 +8,56 @@ import { toast } from 'sonner'
 import { queryGraphs } from '@/api/lightrag'
 import { useBackendState } from '@/stores/state'
 import { useSettingsStore } from '@/stores/settings'
-import { useTabVisibility } from '@/contexts/useTabVisibility'
 
 import seedrandom from 'seedrandom'
 
 const validateGraph = (graph: RawGraph) => {
+  // Check if graph exists
   if (!graph) {
-    return false
-  }
-  if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
-    return false
+    console.log('Graph validation failed: graph is null');
+    return false;
   }
 
+  // Check if nodes and edges are arrays
+  if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
+    console.log('Graph validation failed: nodes or edges is not an array');
+    return false;
+  }
+
+  // Check if nodes array is empty
+  if (graph.nodes.length === 0) {
+    console.log('Graph validation failed: nodes array is empty');
+    return false;
+  }
+
+  // Validate each node
   for (const node of graph.nodes) {
     if (!node.id || !node.labels || !node.properties) {
-      return false
+      console.log('Graph validation failed: invalid node structure');
+      return false;
     }
   }
 
+  // Validate each edge
   for (const edge of graph.edges) {
     if (!edge.id || !edge.source || !edge.target) {
-      return false
+      console.log('Graph validation failed: invalid edge structure');
+      return false;
     }
   }
 
+  // Validate edge connections
   for (const edge of graph.edges) {
-    const source = graph.getNode(edge.source)
-    const target = graph.getNode(edge.target)
+    const source = graph.getNode(edge.source);
+    const target = graph.getNode(edge.target);
     if (source == undefined || target == undefined) {
-      return false
+      console.log('Graph validation failed: edge references non-existent node');
+      return false;
     }
   }
 
-  return true
+  console.log('Graph validation passed');
+  return true;
 }
 
 export type NodeType = {
@@ -54,16 +71,32 @@ export type NodeType = {
 export type EdgeType = { label: string }
 
 const fetchGraph = async (label: string, maxDepth: number, minDegree: number) => {
-  let rawData: any = null
+  let rawData: any = null;
 
-  try {
-    rawData = await queryGraphs(label, maxDepth, minDegree)
-  } catch (e) {
-    useBackendState.getState().setErrorMessage(errorMessage(e), 'Query Graphs Error!')
-    return null
+  // Check if we need to fetch all database labels first
+  const lastSuccessfulQueryLabel = useGraphStore.getState().lastSuccessfulQueryLabel;
+  if (!lastSuccessfulQueryLabel) {
+    console.log('Last successful queryLabel is empty');
+    try {
+      await useGraphStore.getState().fetchAllDatabaseLabels();
+    } catch (e) {
+      console.error('Failed to fetch all database labels:', e);
+      // Continue with graph fetch even if labels fetch fails
+    }
   }
 
-  let rawGraph = null
+  // If label is empty, use default label '*'
+  const queryLabel = label || '*';
+
+  try {
+    console.log(`Fetching graph label: ${queryLabel}, depth: ${maxDepth}, deg: ${minDegree}`);
+    rawData = await queryGraphs(queryLabel, maxDepth, minDegree);
+  } catch (e) {
+    useBackendState.getState().setErrorMessage(errorMessage(e), 'Query Graphs Error!');
+    return null;
+  }
+
+  let rawGraph = null;
 
   if (rawData) {
     const nodeIdMap: Record<string, number> = {}
@@ -130,7 +163,7 @@ const fetchGraph = async (label: string, maxDepth: number, minDegree: number) =>
 
     if (!validateGraph(rawGraph)) {
       rawGraph = null
-      console.error('Invalid graph data')
+      console.warn('Invalid graph data')
     }
     console.log('Graph data loaded')
   }
@@ -190,22 +223,11 @@ const useLightrangeGraph = () => {
   const nodeToExpand = useGraphStore.use.nodeToExpand()
   const nodeToPrune = useGraphStore.use.nodeToPrune()
 
-  // Get tab visibility
-  const { isTabVisible } = useTabVisibility()
-  const isGraphTabVisible = isTabVisible('knowledge-graph')
-
-  // Track previous parameters to detect actual changes
-  const prevParamsRef = useRef({ queryLabel, maxQueryDepth, minDegree })
-
   // Use ref to track if data has been loaded and initial load
   const dataLoadedRef = useRef(false)
   const initialLoadRef = useRef(false)
-
-  // Check if parameters have changed
-  const paramsChanged =
-    prevParamsRef.current.queryLabel !== queryLabel ||
-    prevParamsRef.current.maxQueryDepth !== maxQueryDepth ||
-    prevParamsRef.current.minDegree !== minDegree
+  // Use ref to track if empty data has been handled
+  const emptyDataHandledRef = useRef(false)
 
   const getNode = useCallback(
     (nodeId: string) => {
@@ -224,43 +246,38 @@ const useLightrangeGraph = () => {
   // Track if a fetch is in progress to prevent multiple simultaneous fetches
   const fetchInProgressRef = useRef(false)
 
-  // Data fetching logic - simplified but preserving TAB visibility check
+  // Reset graph when query label is cleared
+  useEffect(() => {
+    if (!queryLabel && (rawGraph !== null || sigmaGraph !== null)) {
+      const state = useGraphStore.getState()
+      state.reset()
+      state.setGraphDataFetchAttempted(false)
+      state.setLabelsFetchAttempted(false)
+      dataLoadedRef.current = false
+      initialLoadRef.current = false
+    }
+  }, [queryLabel, rawGraph, sigmaGraph])
+
+  // Data fetching logic
   useEffect(() => {
     // Skip if fetch is already in progress
     if (fetchInProgressRef.current) {
       return
     }
 
-    // If there's no query label, reset the graph
-    if (!queryLabel) {
-      if (rawGraph !== null || sigmaGraph !== null) {
-        const state = useGraphStore.getState()
-        state.reset()
-        state.setGraphDataFetchAttempted(false)
-        state.setLabelsFetchAttempted(false)
-      }
-      dataLoadedRef.current = false
-      initialLoadRef.current = false
-      return
+    // Empty queryLabel should be only handle once(avoid infinite loop)
+    if (!queryLabel && emptyDataHandledRef.current) {
+      return;
     }
 
-    // Check if parameters have changed
-    if (!isFetching && !fetchInProgressRef.current &&
-        (paramsChanged || !useGraphStore.getState().graphDataFetchAttempted)) {
-
-      // Only fetch data if the Graph tab is visible and we haven't attempted a fetch yet
-      if (!isGraphTabVisible) {
-        console.log('Graph tab not visible, skipping data fetch');
-        return;
-      }
-
+    // Only fetch data when graphDataFetchAttempted is false (avoids re-fetching on vite dev mode)
+    if (!isFetching && !useGraphStore.getState().graphDataFetchAttempted) {
       // Set flags
       fetchInProgressRef.current = true
       useGraphStore.getState().setGraphDataFetchAttempted(true)
 
       const state = useGraphStore.getState()
       state.setIsFetching(true)
-      state.setShouldRender(false) // Disable rendering during data loading
 
       // Clear selection and highlighted nodes before fetching new graph
       state.clearSelection()
@@ -270,73 +287,104 @@ const useLightrangeGraph = () => {
         })
       }
 
-      // Update parameter reference
-      prevParamsRef.current = { queryLabel, maxQueryDepth, minDegree }
-
-      console.log('Fetching graph data...')
+      console.log('Preparing graph data...')
 
       // Use a local copy of the parameters
       const currentQueryLabel = queryLabel
       const currentMaxQueryDepth = maxQueryDepth
       const currentMinDegree = minDegree
 
-      // Fetch graph data
-      fetchGraph(currentQueryLabel, currentMaxQueryDepth, currentMinDegree).then((data) => {
+      // Declare a variable to store data promise
+      let dataPromise;
+
+      // 1. If query label is not empty, use fetchGraph
+      if (currentQueryLabel) {
+        dataPromise = fetchGraph(currentQueryLabel, currentMaxQueryDepth, currentMinDegree);
+      } else {
+        // 2. If query label is empty, set data to null
+        console.log('Query label is empty, show empty graph')
+        dataPromise = Promise.resolve(null);
+      }
+
+      // 3. Process data
+      dataPromise.then((data) => {
         const state = useGraphStore.getState()
 
         // Reset state
         state.reset()
 
-        // Create and set new graph directly
-        const newSigmaGraph = createSigmaGraph(data)
-        data?.buildDynamicMap()
+        // Check if data is empty or invalid
+        if (!data || !data.nodes || data.nodes.length === 0) {
+          // Create a graph with a single "Graph Is Empty" node
+          const emptyGraph = new DirectedGraph();
 
-        // Set new graph data
-        state.setSigmaGraph(newSigmaGraph)
-        state.setRawGraph(data)
+          // Add a single node with "Graph Is Empty" label
+          emptyGraph.addNode('empty-graph-node', {
+            label: t('graphPanel.emptyGraph'),
+            color: '#cccccc', // gray color
+            x: 0.5,
+            y: 0.5,
+            size: 15,
+            borderColor: Constants.nodeBorderColor,
+            borderSize: 0.2
+          });
 
-        // No longer need to extract labels from graph data
+          // Set graph to store
+          state.setSigmaGraph(emptyGraph);
+          state.setRawGraph(null);
+
+          // Still mark graph as empty for other logic
+          state.setGraphIsEmpty(true);
+
+          // Only clear current label if it's not already empty
+          if (currentQueryLabel) {
+            useSettingsStore.getState().setQueryLabel('');
+          }
+
+          // Clear last successful query label to ensure labels are fetched next time
+          state.setLastSuccessfulQueryLabel('');
+
+          console.log('Graph data is empty, created graph with empty graph node');
+        } else {
+          // Create and set new graph
+          const newSigmaGraph = createSigmaGraph(data);
+          data.buildDynamicMap();
+
+          // Set new graph data
+          state.setSigmaGraph(newSigmaGraph);
+          state.setRawGraph(data);
+          state.setGraphIsEmpty(false);
+
+          // Update last successful query label
+          state.setLastSuccessfulQueryLabel(currentQueryLabel);
+
+          // Reset camera view
+          state.setMoveToSelectedNode(true);
+        }
 
         // Update flags
         dataLoadedRef.current = true
         initialLoadRef.current = true
         fetchInProgressRef.current = false
-
-        // Reset camera view
-        state.setMoveToSelectedNode(true)
-
-        // Enable rendering if the tab is visible
-        state.setShouldRender(isGraphTabVisible)
         state.setIsFetching(false)
+
+        // Mark empty data as handled if data is empty and query label is empty
+        if ((!data || !data.nodes || data.nodes.length === 0) && !currentQueryLabel) {
+          emptyDataHandledRef.current = true;
+        }
       }).catch((error) => {
         console.error('Error fetching graph data:', error)
 
         // Reset state on error
         const state = useGraphStore.getState()
         state.setIsFetching(false)
-        state.setShouldRender(isGraphTabVisible)
-        dataLoadedRef.current = false
+        dataLoadedRef.current = false;
         fetchInProgressRef.current = false
         state.setGraphDataFetchAttempted(false)
+        state.setLastSuccessfulQueryLabel('') // Clear last successful query label on error
       })
     }
-  }, [queryLabel, maxQueryDepth, minDegree, isFetching, paramsChanged, isGraphTabVisible, rawGraph, sigmaGraph])
-
-  // Update rendering state and handle tab visibility changes
-  useEffect(() => {
-    // When tab becomes visible
-    if (isGraphTabVisible) {
-      // If we have data, enable rendering
-      if (rawGraph) {
-        useGraphStore.getState().setShouldRender(true)
-      }
-
-      // We no longer reset the fetch attempted flag here to prevent continuous API calls
-    } else {
-      // When tab becomes invisible, disable rendering
-      useGraphStore.getState().setShouldRender(false)
-    }
-  }, [isGraphTabVisible, rawGraph])
+  }, [queryLabel, maxQueryDepth, minDegree, isFetching, t])
 
   // Handle node expansion
   useEffect(() => {
@@ -416,17 +464,13 @@ const useLightrangeGraph = () => {
         const nodesToAdd = new Set<string>();
         const edgesToAdd = new Set<string>();
 
-        // Get degree range from existing graph for size calculations
+        // Get degree maxDegree from existing graph for size calculations
         const minDegree = 1;
         let maxDegree = 0;
         sigmaGraph.forEachNode(node => {
           const degree = sigmaGraph.degree(node);
           maxDegree = Math.max(maxDegree, degree);
         });
-
-        // Calculate size formula parameters
-        const range = maxDegree - minDegree || 1; // Avoid division by zero
-        const scale = Constants.maxNodeSize - Constants.minNodeSize;
 
         // First identify connectable nodes (nodes connected to the expanded node)
         for (const node of processedNodes) {
@@ -448,6 +492,7 @@ const useLightrangeGraph = () => {
 
         // Calculate node degrees and track discarded edges in one pass
         const nodeDegrees = new Map<string, number>();
+        const existingNodeDegreeIncrements = new Map<string, number>(); // Track degree increments for existing nodes
         const nodesWithDiscardedEdges = new Set<string>();
 
         for (const edge of processedEdges) {
@@ -456,12 +501,19 @@ const useLightrangeGraph = () => {
 
           if (sourceExists && targetExists) {
             edgesToAdd.add(edge.id);
-            // Add degrees for valid edges
+            // Add degrees for both new and existing nodes
             if (nodesToAdd.has(edge.source)) {
               nodeDegrees.set(edge.source, (nodeDegrees.get(edge.source) || 0) + 1);
+            } else if (existingNodeIds.has(edge.source)) {
+              // Track degree increments for existing nodes
+              existingNodeDegreeIncrements.set(edge.source, (existingNodeDegreeIncrements.get(edge.source) || 0) + 1);
             }
+
             if (nodesToAdd.has(edge.target)) {
               nodeDegrees.set(edge.target, (nodeDegrees.get(edge.target) || 0) + 1);
+            } else if (existingNodeIds.has(edge.target)) {
+              // Track degree increments for existing nodes
+              existingNodeDegreeIncrements.set(edge.target, (existingNodeDegreeIncrements.get(edge.target) || 0) + 1);
             }
           } else {
             // Track discarded edges for both new and existing nodes
@@ -485,16 +537,21 @@ const useLightrangeGraph = () => {
           sigmaGraph: DirectedGraph,
           nodesWithDiscardedEdges: Set<string>,
           minDegree: number,
-          range: number,
-          scale: number
+          maxDegree: number
         ) => {
+          // Calculate derived values inside the function
+          const range = maxDegree - minDegree || 1; // Avoid division by zero
+          const scale = Constants.maxNodeSize - Constants.minNodeSize;
+
           for (const nodeId of nodesWithDiscardedEdges) {
             if (sigmaGraph.hasNode(nodeId)) {
               let newDegree = sigmaGraph.degree(nodeId);
               newDegree += 1; // Add +1 for discarded edges
+              // Limit newDegree to maxDegree + 1 to prevent nodes from being too large
+              const limitedDegree = Math.min(newDegree, maxDegree + 1);
 
               const newSize = Math.round(
-                Constants.minNodeSize + scale * Math.pow((newDegree - minDegree) / range, 0.5)
+                Constants.minNodeSize + scale * Math.pow((limitedDegree - minDegree) / range, 0.5)
               );
 
               const currentSize = sigmaGraph.getNodeAttribute(nodeId, 'size');
@@ -508,15 +565,26 @@ const useLightrangeGraph = () => {
 
         // If no new connectable nodes found, show toast and return
         if (nodesToAdd.size === 0) {
-          updateNodeSizes(sigmaGraph, nodesWithDiscardedEdges, minDegree, range, scale);
+          updateNodeSizes(sigmaGraph, nodesWithDiscardedEdges, minDegree, maxDegree);
           toast.info(t('graphPanel.propertiesView.node.noNewNodes'));
           return;
         }
 
-        // Update maxDegree with new node degrees
+        // Update maxDegree considering all nodes (both new and existing)
+        // 1. Consider degrees of new nodes
         for (const [, degree] of nodeDegrees.entries()) {
           maxDegree = Math.max(maxDegree, degree);
         }
+
+        // 2. Consider degree increments for existing nodes
+        for (const [nodeId, increment] of existingNodeDegreeIncrements.entries()) {
+          const currentDegree = sigmaGraph.degree(nodeId);
+          const projectedDegree = currentDegree + increment;
+          maxDegree = Math.max(maxDegree, projectedDegree);
+        }
+
+        const range = maxDegree - minDegree || 1; // Avoid division by zero
+        const scale = Constants.maxNodeSize - Constants.minNodeSize;
 
         // SAdd nodes and edges to the graph
         // Calculate camera ratio and spread factor once before the loop
@@ -537,8 +605,10 @@ const useLightrangeGraph = () => {
           const nodeDegree = nodeDegrees.get(nodeId) || 0;
 
           // Calculate node size
+          // Limit nodeDegree to maxDegree + 1 to prevent new nodes from being too large
+          const limitedDegree = Math.min(nodeDegree, maxDegree + 1);
           const nodeSize = Math.round(
-            Constants.minNodeSize + scale * Math.pow((nodeDegree - minDegree) / range, 0.5)
+            Constants.minNodeSize + scale * Math.pow((limitedDegree - minDegree) / range, 0.5)
           );
 
           // Calculate angle for polar coordinates
@@ -613,7 +683,18 @@ const useLightrangeGraph = () => {
         useGraphStore.getState().resetSearchEngine();
 
         // Update sizes for all nodes with discarded edges
-        updateNodeSizes(sigmaGraph, nodesWithDiscardedEdges, minDegree, range, scale);
+        updateNodeSizes(sigmaGraph, nodesWithDiscardedEdges, minDegree, maxDegree);
+
+        if (sigmaGraph.hasNode(nodeId)) {
+          const finalDegree = sigmaGraph.degree(nodeId);
+          const limitedDegree = Math.min(finalDegree, maxDegree + 1);
+          const newSize = Math.round(
+            Constants.minNodeSize + scale * Math.pow((limitedDegree - minDegree) / range, 0.5)
+          );
+          sigmaGraph.setNodeAttribute(nodeId, 'size', newSize);
+          nodeToExpand.size = newSize;
+          nodeToExpand.degree = finalDegree;
+        }
 
       } catch (error) {
         console.error('Error expanding node:', error);

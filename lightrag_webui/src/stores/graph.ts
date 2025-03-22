@@ -74,7 +74,8 @@ interface GraphState {
 
   moveToSelectedNode: boolean
   isFetching: boolean
-  shouldRender: boolean
+  graphIsEmpty: boolean
+  lastSuccessfulQueryLabel: string
 
   // Global flags to track data fetching attempts
   graphDataFetchAttempted: boolean
@@ -89,13 +90,14 @@ interface GraphState {
   reset: () => void
 
   setMoveToSelectedNode: (moveToSelectedNode: boolean) => void
+  setGraphIsEmpty: (isEmpty: boolean) => void
+  setLastSuccessfulQueryLabel: (label: string) => void
 
   setRawGraph: (rawGraph: RawGraph | null) => void
   setSigmaGraph: (sigmaGraph: DirectedGraph | null) => void
   setAllDatabaseLabels: (labels: string[]) => void
   fetchAllDatabaseLabels: () => Promise<void>
   setIsFetching: (isFetching: boolean) => void
-  setShouldRender: (shouldRender: boolean) => void
 
   // 搜索引擎方法
   setSearchEngine: (engine: MiniSearch | null) => void
@@ -122,7 +124,8 @@ const useGraphStoreBase = create<GraphState>()((set) => ({
 
   moveToSelectedNode: false,
   isFetching: false,
-  shouldRender: false,
+  graphIsEmpty: false,
+  lastSuccessfulQueryLabel: '', // Initialize as empty to ensure fetchAllDatabaseLabels runs on first query
 
   // Initialize global flags
   graphDataFetchAttempted: false,
@@ -135,9 +138,11 @@ const useGraphStoreBase = create<GraphState>()((set) => ({
 
   searchEngine: null,
 
+  setGraphIsEmpty: (isEmpty: boolean) => set({ graphIsEmpty: isEmpty }),
+  setLastSuccessfulQueryLabel: (label: string) => set({ lastSuccessfulQueryLabel: label }),
+
 
   setIsFetching: (isFetching: boolean) => set({ isFetching }),
-  setShouldRender: (shouldRender: boolean) => set({ shouldRender }),
   setSelectedNode: (nodeId: string | null, moveToSelectedNode?: boolean) =>
     set({ selectedNode: nodeId, moveToSelectedNode }),
   setFocusedNode: (nodeId: string | null) => set({ focusedNode: nodeId }),
@@ -160,7 +165,8 @@ const useGraphStoreBase = create<GraphState>()((set) => ({
       sigmaGraph: null,  // to avoid other components from acccessing graph objects
       searchEngine: null,
       moveToSelectedNode: false,
-      shouldRender: false
+      graphIsEmpty: false
+      // Do not reset lastSuccessfulQueryLabel here as it's used to track query history
     });
   },
 

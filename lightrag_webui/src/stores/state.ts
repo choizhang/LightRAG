@@ -18,11 +18,11 @@ interface BackendState {
 
 interface AuthState {
   isAuthenticated: boolean;
-  showLoginModal: boolean;
   isGuestMode: boolean;  // Add guest mode flag
-  login: (token: string, isGuest?: boolean) => void;
+  coreVersion: string | null;
+  apiVersion: string | null;
+  login: (token: string, isGuest?: boolean, coreVersion?: string | null, apiVersion?: string | null) => void;
   logout: () => void;
-  setShowLoginModal: (show: boolean) => void;
 }
 
 const useBackendStateStoreBase = create<BackendState>()((set) => ({
@@ -86,15 +86,25 @@ const isGuestToken = (token: string): boolean => {
 };
 
 // Initialize auth state from localStorage
-const initAuthState = (): { isAuthenticated: boolean; isGuestMode: boolean } => {
+const initAuthState = (): { isAuthenticated: boolean; isGuestMode: boolean; coreVersion: string | null; apiVersion: string | null } => {
   const token = localStorage.getItem('LIGHTRAG-API-TOKEN');
+  const coreVersion = localStorage.getItem('LIGHTRAG-CORE-VERSION');
+  const apiVersion = localStorage.getItem('LIGHTRAG-API-VERSION');
+
   if (!token) {
-    return { isAuthenticated: false, isGuestMode: false };
+    return {
+      isAuthenticated: false,
+      isGuestMode: false,
+      coreVersion: coreVersion,
+      apiVersion: apiVersion
+    };
   }
 
   return {
     isAuthenticated: true,
-    isGuestMode: isGuestToken(token)
+    isGuestMode: isGuestToken(token),
+    coreVersion: coreVersion,
+    apiVersion: apiVersion
   };
 };
 
@@ -104,26 +114,40 @@ export const useAuthStore = create<AuthState>(set => {
 
   return {
     isAuthenticated: initialState.isAuthenticated,
-    showLoginModal: false,
     isGuestMode: initialState.isGuestMode,
+    coreVersion: initialState.coreVersion,
+    apiVersion: initialState.apiVersion,
 
-    login: (token, isGuest = false) => {
+    login: (token, isGuest = false, coreVersion = null, apiVersion = null) => {
       localStorage.setItem('LIGHTRAG-API-TOKEN', token);
+
+      if (coreVersion) {
+        localStorage.setItem('LIGHTRAG-CORE-VERSION', coreVersion);
+      }
+      if (apiVersion) {
+        localStorage.setItem('LIGHTRAG-API-VERSION', apiVersion);
+      }
+
       set({
         isAuthenticated: true,
-        showLoginModal: false,
-        isGuestMode: isGuest
+        isGuestMode: isGuest,
+        coreVersion: coreVersion,
+        apiVersion: apiVersion
       });
     },
 
     logout: () => {
       localStorage.removeItem('LIGHTRAG-API-TOKEN');
+
+      const coreVersion = localStorage.getItem('LIGHTRAG-CORE-VERSION');
+      const apiVersion = localStorage.getItem('LIGHTRAG-API-VERSION');
+
       set({
         isAuthenticated: false,
-        isGuestMode: false
+        isGuestMode: false,
+        coreVersion: coreVersion,
+        apiVersion: apiVersion
       });
-    },
-
-    setShowLoginModal: (show) => set({ showLoginModal: show })
+    }
   };
 });

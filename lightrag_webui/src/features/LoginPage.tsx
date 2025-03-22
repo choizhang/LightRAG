@@ -4,7 +4,6 @@ import { useAuthStore } from '@/stores/state'
 import { loginToServer, getAuthStatus } from '@/api/lightrag'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
-
 import { Card, CardContent, CardHeader } from '@/components/ui/Card'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
@@ -20,7 +19,11 @@ const LoginPage = () => {
   const [password, setPassword] = useState('')
   const [checkingAuth, setCheckingAuth] = useState(true)
 
-  // Check if authentication is configured
+  useEffect(() => {
+    console.log('LoginPage mounted')
+  }, []);
+
+  // Check if authentication is configured, skip login if not
   useEffect(() => {
     let isMounted = true; // Flag to prevent state updates after unmount
 
@@ -40,12 +43,12 @@ const LoginPage = () => {
 
         if (!status.auth_configured && status.access_token) {
           // If auth is not configured, use the guest token and redirect
-          login(status.access_token, true)
+          login(status.access_token, true, status.core_version, status.api_version)
           if (status.message) {
             toast.info(status.message)
           }
           navigate('/')
-          return; // Exit early, no need to set checkingAuth to false
+          return // Exit early, no need to set checkingAuth to false
         }
       } catch (error) {
         console.error('Failed to check auth configuration:', error)
@@ -84,7 +87,7 @@ const LoginPage = () => {
 
       // Check authentication mode
       const isGuestMode = response.auth_mode === 'disabled'
-      login(response.access_token, isGuestMode)
+      login(response.access_token, isGuestMode, response.core_version, response.api_version)
 
       if (isGuestMode) {
         // Show authentication disabled notification
@@ -93,10 +96,16 @@ const LoginPage = () => {
         toast.success(t('login.successMessage'))
       }
 
+      // Navigate to home page after successful login
       navigate('/')
     } catch (error) {
       console.error('Login failed...', error)
       toast.error(t('login.errorInvalidCredentials'))
+
+      // Clear any existing auth state
+      useAuthStore.getState().logout()
+      // Clear local storage
+      localStorage.removeItem('LIGHTRAG-API-TOKEN')
     } finally {
       setLoading(false)
     }
