@@ -75,7 +75,12 @@ class LightragPathFilter(logging.Filter):
     def __init__(self):
         super().__init__()
         # Define paths to be filtered
-        self.filtered_paths = ["/documents", "/health", "/webui/"]
+        self.filtered_paths = [
+            "/documents",
+            "/health",
+            "/webui/",
+            "/documents/pipeline_status",
+        ]
         # self.filtered_paths = ["/health", "/webui/"]
 
     def filter(self, record):
@@ -901,7 +906,7 @@ def lazy_external_import(module_name: str, class_name: str) -> Callable[..., Any
     return import_class
 
 
-def get_content_summary(content: str, max_length: int = 100) -> str:
+def get_content_summary(content: str, max_length: int = 250) -> str:
     """Get summary of document content
 
     Args:
