@@ -6,6 +6,9 @@ from lightrag.llm.siliconcloud import siliconcloud_embedding
 from lightrag.utils import EmbeddingFunc
 import numpy as np
 from lightrag.kg.shared_storage import initialize_pipeline_status
+from dotenv import load_dotenv
+
+load_dotenv()
 
 WORKING_DIR = "./xiyouji"
 
@@ -53,7 +56,7 @@ async def initialize_rag():
         working_dir=WORKING_DIR,
         llm_model_func=llm_model_func,
         embedding_func=EmbeddingFunc(
-            embedding_dim=768, max_token_size=512, func=embedding_func
+            embedding_dim=1024, max_token_size=512, func=embedding_func
         ),
     )
 
