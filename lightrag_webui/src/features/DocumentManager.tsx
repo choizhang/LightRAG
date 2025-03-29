@@ -64,6 +64,14 @@ const pulseStyle = `
   color: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   pointer-events: none; /* Prevent tooltip from interfering with mouse events */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s, visibility 0.15s;
+}
+
+.tooltip.visible {
+  opacity: 1;
+  visibility: visible;
 }
 
 .dark .tooltip {
@@ -216,8 +224,8 @@ export default function DocumentManager() {
         const tooltip = container.querySelector<HTMLElement>('.tooltip');
         if (!tooltip) return;
 
-        // Only position visible tooltips
-        if (getComputedStyle(tooltip).visibility === 'hidden') return;
+        // Skip tooltips that aren't visible
+        if (!tooltip.classList.contains('visible')) return;
 
         // Get container position
         const rect = container.getBoundingClientRect();
@@ -236,14 +244,32 @@ export default function DocumentManager() {
       const container = target.closest('.tooltip-container');
       if (!container) return;
 
-      // Small delay to ensure tooltip is visible before positioning
-      setTimeout(positionTooltips, 10);
+      // Find tooltip and make it visible
+      const tooltip = container.querySelector<HTMLElement>('.tooltip');
+      if (tooltip) {
+        tooltip.classList.add('visible');
+        // Position immediately without delay
+        positionTooltips();
+      }
+    };
+
+    const handleMouseOut = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const container = target.closest('.tooltip-container');
+      if (!container) return;
+
+      const tooltip = container.querySelector<HTMLElement>('.tooltip');
+      if (tooltip) {
+        tooltip.classList.remove('visible');
+      }
     };
 
     document.addEventListener('mouseover', handleMouseOver);
+    document.addEventListener('mouseout', handleMouseOut);
 
     return () => {
       document.removeEventListener('mouseover', handleMouseOver);
+      document.removeEventListener('mouseout', handleMouseOut);
     };
   }, [docs]);
 
@@ -368,7 +394,7 @@ export default function DocumentManager() {
           />
         </div>
 
-        <Card className="flex-1 flex flex-col border rounded-md min-h-0 mb-0">
+        <Card className="flex-1 flex flex-col border rounded-md min-h-0 mb-2">
           <CardHeader className="flex-none py-2 px-4">
             <div className="flex justify-between items-center">
               <CardTitle>{t('documentPanel.documentManager.uploadedTitle')}</CardTitle>
@@ -401,7 +427,7 @@ export default function DocumentManager() {
             )}
             {docs && (
               <div className="absolute inset-0 flex flex-col p-0">
-                <div className="w-full h-full flex flex-col border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="absolute inset-[-1px] flex flex-col p-0 border rounded-md border-gray-200 dark:border-gray-700 overflow-hidden">
                   <Table className="w-full">
                     <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                       <TableRow className="border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75 shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">
