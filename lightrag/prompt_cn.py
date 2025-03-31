@@ -30,32 +30,31 @@ PROMPTS["DEFAULT_ENTITY_TYPES"] = [
 ]
 
 PROMPTS["entity_extraction"] = """---目标---
-给定一段机器人和家庭成员自然对话聊天内容，忽略Robot本身的实体和关系，忽略Robot在对话中的主观评价，识别文本中所有这些类型的实体以及实体跟实体之间的关系。将文本里面的内容进行知识融合，包括指代消解、消除歧义、消除矛盾等。
-使用 {language} 作为输出语言。
+给定一个可能与当前活动相关的文本文档和实体类型列表，从中识别出所有指定类型的实体以及这些实体之间的关系。
+使用{language}作为输出语言。
 
 ---步骤---
-1. 识别所有实体。对于每个识别出的实体，提取以下信息：
-- entity_name: 实体名称，使用与输入文本相同的语言。如果是英文，则大写名称。尽可能将指示代词或角色称谓替换为已有实体，比如：小红的姐姐是张希，那别人对小红说你姐姐的时候则将小红姐姐替换为张希。当文本中出现 "爸爸"、"父亲"、"儿子" 等指代词或角色称谓时，需要通过上下文判断它们是否指向已有的实体，而不是创建新的实体。
+1. 识别所有实体。对于每个识别的实体，提取以下信息：
+- entity_name: 实体名称，使用与输入文本相同的语言。如果是英文，首字母大写。
+- entity_type: 以下类型之一: [{entity_types}]
+- entity_description: 对实体属性和活动的全面描述
+每个实体的格式为("entity"{tuple_delimiter}<entity_name>{tuple_delimiter}<entity_type>{tuple_delimiter}<entity_description>)
 
-- entity_type: 以下类型之一：[{entity_types}]
-- entity_description: 实体属性和活动的综合描述
-以 ("entity"{tuple_delimiter}<entity_name>{tuple_delimiter}<entity_type>{tuple_delimiter}<entity_description>) 的格式表示每个实体
-
-2. 从第 1 步中识别的实体中，识别所有实体与实体之间的关系（source_entity, target_entity）对。
+2. 从步骤1识别的实体中，找出所有*明确相关*的(源实体,目标实体)对。
 对于每对相关实体，提取以下信息：
-- source_entity: 第 1 步中识别的源实体名称
-- target_entity: 第 1 步中识别的目标实体名称
-- relationship_description: 解释为什么认为源实体和目标实体是相关的
-- relationship_strength: 表示源实体和目标实体之间关系强度的数值分数
-- relationship_keywords: 一个或多个高层次关键词，总结关系的总体性质，侧重于概念或主题而非具体细节
-以 ("relationship"{tuple_delimiter}<source_entity>{tuple_delimiter}<target_entity>{tuple_delimiter}<relationship_description>{tuple_delimiter}<relationship_keywords>{tuple_delimiter}<relationship_strength>) 的格式表示每种关系
+- source_entity: 源实体名称，如步骤1所识别
+- target_entity: 目标实体名称，如步骤1所识别
+- relationship_description: 解释为什么认为源实体和目标实体相关
+- relationship_strength: 表示源实体和目标实体之间关系强度的数字分数
+- relationship_keywords: 一个或多个高级关键词，总结关系的总体性质，关注概念或主题而非具体细节
+每个关系的格式为("relationship"{tuple_delimiter}<source_entity>{tuple_delimiter}<target_entity>{tuple_delimiter}<relationship_description>{tuple_delimiter}<relationship_keywords>{tuple_delimiter}<relationship_strength>)
 
-3. 识别总结整个文本主要概念、主题或话题的高层次关键词。这些应捕捉文档中呈现的主要思想。
-以 ("content_keywords"{tuple_delimiter}<high_level_keywords>) 的格式表示内容级关键词
+3. 识别总结整个文本主要概念、主题或话题的高级关键词。这些应捕捉文档中的总体思想。
+内容级关键词的格式为("content_keywords"{tuple_delimiter}<high_level_keywords>)
 
-4. 使用 **{record_delimiter}** 作为列表分隔符，返回第 1 和 2 步中识别的所有实体和关系的单个列表。
+4. 以{language}返回步骤1和2中识别的所有实体和关系的列表。使用**{record_delimiter}**作为列表分隔符。
 
-5. 完成后，输出 {completion_delimiter}
+5. 完成后，输出{completion_delimiter}
 
 ######################
 ---示例---
@@ -63,57 +62,168 @@ PROMPTS["entity_extraction"] = """---目标---
 {examples}
 
 #############################
----实际数据---
+---真实数据---
 ######################
-Entity_types: {entity_types}
-Text: {input_text}
+Entity_types: [{entity_types}]
+Text:
+{input_text}
 ######################
-Output:"""
+输出:"""
 
-PROMPTS["entity_extraction_examples"] = []
+PROMPTS["entity_extraction_examples"] = [
+    """示例1:
 
-PROMPTS["summarize_entity_descriptions"] = """您是一个负责生成所提供数据综合摘要的助手。
-给定一两个实体及其描述列表，所有描述均与同一实体或实体组相关。
-请将所有这些描述合并为一个综合描述。确保包含来自所有描述的信息。
-如果有矛盾的描述，请解决矛盾并提供一个连贯的单一摘要。
-确保以第三人称书写，并包括实体名称以提供完整上下文。
-使用 {language} 作为输出语言。
+Entity_types: [人物, 技术, 任务, 组织, 位置]
+Text:
+```
+当Alex咬紧牙关时，Taylor专制的确定性背景下的挫败感显得沉闷。正是这种竞争暗流让他保持警觉，感觉他和Jordan对发现的共同承诺是对Cruz日益狭隘的控制和秩序观的无言反抗。
+
+然后Taylor做了件意想不到的事。他们在Jordan旁边停下，有那么一刻，带着近乎崇敬的神情观察着那个设备。"如果这项技术能被理解..."Taylor说，声音更轻了，"它可能改变我们的游戏规则。对我们所有人都是。"
+
+先前的潜在轻视似乎动摇了，取而代之的是对他们手中事物重要性的不情愿的尊重。Jordan抬起头，在转瞬即逝的瞬间，他们的目光与Taylor相遇，意志的无声冲突软化成了不安的休战。
+
+这是一个微小的转变，几乎察觉不到，但Alex内心点头注意到了。他们都是通过不同的路径被带到这里
+```
+
+输出:
+("entity"{tuple_delimiter}"Alex"{tuple_delimiter}"人物"{tuple_delimiter}"Alex是一个经历挫折的角色，观察着其他角色之间的动态。"){record_delimiter}
+("entity"{tuple_delimiter}"Taylor"{tuple_delimiter}"人物"{tuple_delimiter}"Taylor被描绘成专制确定性，并对设备表现出崇敬时刻，表明观点发生了变化。"){record_delimiter}
+("entity"{tuple_delimiter}"Jordan"{tuple_delimiter}"人物"{tuple_delimiter}"Jordan与Alex共享对发现的承诺，并与Taylor就设备进行了重要互动。"){record_delimiter}
+("entity"{tuple_delimiter}"Cruz"{tuple_delimiter}"人物"{tuple_delimiter}"Cruz与控制秩序观相关，影响着其他角色之间的动态。"){record_delimiter}
+("entity"{tuple_delimiter}"设备"{tuple_delimiter}"技术"{tuple_delimiter}"设备是故事的核心，具有潜在的改变游戏规则的影响，并受到Taylor的崇敬。"){record_delimiter}
+("relationship"{tuple_delimiter}"Alex"{tuple_delimiter}"Taylor"{tuple_delimiter}"Alex受到Taylor专制确定性的影响，并观察到Taylor对设备态度的变化。"{tuple_delimiter}"权力动态, 观点转变"{tuple_delimiter}7){record_delimiter}
+("relationship"{tuple_delimiter}"Alex"{tuple_delimiter}"Jordan"{tuple_delimiter}"Alex和Jordan共享对发现的承诺，这与Cruz的愿景形成对比。"{tuple_delimiter}"共同目标, 反抗"{tuple_delimiter}6){record_delimiter}
+("relationship"{tuple_delimiter}"Taylor"{tuple_delimiter}"Jordan"{tuple_delimiter}"Taylor和Jordan直接互动关于设备，导致相互尊重和不安休战的时刻。"{tuple_delimiter}"冲突解决, 相互尊重"{tuple_delimiter}8){record_delimiter}
+("relationship"{tuple_delimiter}"Jordan"{tuple_delimiter}"Cruz"{tuple_delimiter}"Jordan对发现的承诺是对Cruz控制和秩序观的反抗。"{tuple_delimiter}"意识形态冲突, 反抗"{tuple_delimiter}5){record_delimiter}
+("relationship"{tuple_delimiter}"Taylor"{tuple_delimiter}"设备"{tuple_delimiter}"Taylor对设备表现出崇敬，表明其重要性和潜在影响。"{tuple_delimiter}"崇敬, 技术重要性"{tuple_delimiter}9){record_delimiter}
+("content_keywords"{tuple_delimiter}"权力动态, 意识形态冲突, 发现, 反抗"){completion_delimiter}
+#############################""",
+    """示例2:
+
+Entity_types: [公司, 指数, 商品, 市场趋势, 经济政策, 生物]
+Text:
+```
+由于科技巨头股价大幅下跌，股市今天面临急剧下滑，全球科技指数在午盘交易中下跌3.4%。分析师将抛售归因于投资者对利率上升和监管不确定性的担忧。
+
+在受影响最严重的公司中，Nexon科技在公布低于预期的季度收益后股价暴跌7.8%。相比之下，Omega能源因油价上涨而小幅上涨2.1%。
+
+与此同时，商品市场反映出复杂的情绪。黄金期货上涨1.5%，达到每盎司2080美元，因为投资者寻求避险资产。原油价格继续上涨，攀升至每桶87.60美元，受到供应限制和强劲需求的支持。
+
+金融专家正密切关注美联储的下一步行动，因为对潜在加息的猜测不断增加。即将公布的政策声明预计将影响投资者信心和整体市场稳定性。
+```
+
+输出:
+("entity"{tuple_delimiter}"全球科技指数"{tuple_delimiter}"指数"{tuple_delimiter}"全球科技指数追踪主要科技股表现，今天下跌3.4%。"){record_delimiter}
+("entity"{tuple_delimiter}"Nexon科技"{tuple_delimiter}"公司"{tuple_delimiter}"Nexon科技是一家科技公司，在令人失望的收益报告后股价下跌7.8%。"){record_delimiter}
+("entity"{tuple_delimiter}"Omega能源"{tuple_delimiter}"公司"{tuple_delimiter}"Omega能源是一家能源公司，因油价上涨股价上涨2.1%。"){record_delimiter}
+("entity"{tuple_delimiter}"黄金期货"{tuple_delimiter}"商品"{tuple_delimiter}"黄金期货上涨1.5%，表明投资者对避险资产的兴趣增加。"){record_delimiter}
+("entity"{tuple_delimiter}"原油"{tuple_delimiter}"商品"{tuple_delimiter}"原油价格上涨至每桶87.60美元，原因是供应限制和强劲需求。"){record_delimiter}
+("entity"{tuple_delimiter}"市场抛售"{tuple_delimiter}"市场趋势"{tuple_delimiter}"市场抛售指的是由于投资者对利率和法规的担忧导致股票价值显著下降。"){record_delimiter}
+("entity"{tuple_delimiter}"美联储政策声明"{tuple_delimiter}"经济政策"{tuple_delimiter}"美联储即将公布的政策声明预计将影响投资者信心和市场稳定性。"){record_delimiter}
+("relationship"{tuple_delimiter}"全球科技指数"{tuple_delimiter}"市场抛售"{tuple_delimiter}"全球科技指数下跌是投资者担忧驱动的更广泛市场抛售的一部分。"{tuple_delimiter}"市场表现, 投资者情绪"{tuple_delimiter}9){record_delimiter}
+("relationship"{tuple_delimiter}"Nexon科技"{tuple_delimiter}"全球科技指数"{tuple_delimiter}"Nexon科技股价下跌导致全球科技指数整体下跌。"{tuple_delimiter}"公司影响, 指数变动"{tuple_delimiter}8){record_delimiter}
+("relationship"{tuple_delimiter}"黄金期货"{tuple_delimiter}"市场抛售"{tuple_delimiter}"在市场抛售期间，黄金价格上涨，因为投资者寻求避险资产。"{tuple_delimiter}"市场反应, 避险投资"{tuple_delimiter}10){record_delimiter}
+("relationship"{tuple_delimiter}"美联储政策声明"{tuple_delimiter}"市场抛售"{tuple_delimiter}"对美联储政策变化的猜测导致市场波动和投资者抛售。"{tuple_delimiter}"利率影响, 金融监管"{tuple_delimiter}7){record_delimiter}
+("content_keywords"{tuple_delimiter}"市场下滑, 投资者情绪, 商品, 美联储, 股票表现"){completion_delimiter}
+#############################""",
+    """示例3:
+
+Entity_types: [经济政策, 运动员, 事件, 地点, 记录, 组织, 装备]
+Text:
+```
+在东京举行的世界田径锦标赛上，Noah Carter使用尖端碳纤维钉鞋打破了100米短跑纪录。
+```
+
+输出:
+("entity"{tuple_delimiter}"世界田径锦标赛"{tuple_delimiter}"事件"{tuple_delimiter}"世界田径锦标赛是一项全球性体育比赛，汇集了田径项目的顶尖运动员。"){record_delimiter}
+("entity"{tuple_delimiter}"东京"{tuple_delimiter}"地点"{tuple_delimiter}"东京是世界田径锦标赛的举办城市。"){record_delimiter}
+("entity"{tuple_delimiter}"Noah Carter"{tuple_delimiter}"运动员"{tuple_delimiter}"Noah Carter是一名短跑运动员，在世界田径锦标赛上创造了新的100米短跑纪录。"){record_delimiter}
+("entity"{tuple_delimiter}"100米短跑纪录"{tuple_delimiter}"记录"{tuple_delimiter}"100米短跑纪录是田径运动的一个基准，最近被Noah Carter打破。"){record_delimiter}
+("entity"{tuple_delimiter}"碳纤维钉鞋"{tuple_delimiter}"装备"{tuple_delimiter}"碳纤维钉鞋是先进的短跑鞋，提供增强的速度和抓地力。"){record_delimiter}
+("entity"{tuple_delimiter}"世界田径联合会"{tuple_delimiter}"组织"{tuple_delimiter}"世界田径联合会是监督世界田径锦标赛和记录验证的管理机构。"){record_delimiter}
+("relationship"{tuple_delimiter}"世界田径锦标赛"{tuple_delimiter}"东京"{tuple_delimiter}"世界田径锦标赛在东京举行。"{tuple_delimiter}"赛事地点, 国际比赛"{tuple_delimiter}8){record_delimiter}
+("relationship"{tuple_delimiter}"Noah Carter"{tuple_delimiter}"100米短跑纪录"{tuple_delimiter}"Noah Carter在锦标赛上创造了新的100米短跑纪录。"{tuple_delimiter}"运动员成就, 破纪录"{tuple_delimiter}10){record_delimiter}
+("relationship"{tuple_delimiter}"Noah Carter"{tuple_delimiter}"碳纤维钉鞋"{tuple_delimiter}"Noah Carter在比赛期间使用碳纤维钉鞋提高表现。"{tuple_delimiter}"运动装备, 表现提升"{tuple_delimiter}7){record_delimiter}
+("relationship"{tuple_delimiter}"世界田径联合会"{tuple_delimiter}"100米短跑纪录"{tuple_delimiter}"世界田径联合会负责验证和认可新的短跑纪录。"{tuple_delimiter}"体育监管, 记录认证"{tuple_delimiter}9){record_delimiter}
+("content_keywords"{tuple_delimiter}"田径, 短跑, 破纪录, 运动技术, 比赛"){completion_delimiter}
+#############################""",
+]
+
+PROMPTS[
+    "summarize_entity_descriptions"
+] = """你是一个有帮助的助手，负责生成对下面提供数据的全面总结。
+给定一个或两个实体，以及一个描述列表，所有都与同一实体或实体组相关。
+请将所有内容合并成一个全面的描述。确保包含从所有描述中收集的信息。
+如果提供的描述相互矛盾，请解决矛盾并提供一个连贯的总结。
+确保使用第三人称写作，并包含实体名称以便我们有完整上下文。
+使用{language}作为输出语言。
 
 #######
 ---数据---
-Entities: {entity_name}
-Description List: {description_list}
+实体: {entity_name}
+描述列表: {description_list}
 #######
-Output:
+输出:
 """
 
-PROMPTS[
-    "entiti_continue_extraction"
-] = """上次提取遗漏了许多实体和实体跟实体之间关系。请使用相同的限制要求及格式添加它们：
-"""
+PROMPTS["entity_continue_extraction"] = """
+上次提取遗漏了许多实体和关系。
 
-PROMPTS[
-    "entiti_if_loop_extraction"
-] = """似乎还有一些实体和实体跟实体之间关系未被提取。回答 YES | NO 是否仍有需要添加的实体。
-"""
+---记住步骤---
+
+1. 识别所有实体。对于每个识别的实体，提取以下信息：
+- entity_name: 实体名称，使用与输入文本相同的语言。如果是英文，首字母大写。
+- entity_type: 以下类型之一: [{entity_types}]
+- entity_description: 实体属性和活动的全面描述
+每个实体的格式为("entity"{tuple_delimiter}<entity_name>{tuple_delimiter}<entity_type>{tuple_delimiter}<entity_description>
+
+2. 从步骤 1 识别的实体中，找出所有*明确相关*的 (源实体, 目标实体) 对。
+对于每对相关实体，提取以下信息：
+- source_entity: 源实体名称，如步骤 1 所识别
+- target_entity: 目标实体名称，如步骤 1 所识别
+- relationship_description: 解释为什么认为源实体和目标实体相关
+- relationship_strength: 表示源实体和目标实体之间关系强度的数字分数
+- relationship_keywords: 总结关系总体性质的一个或多个高级关键词，侧重于概念或主题，而非具体细节
+每个关系的格式为("relationship"{tuple_delimiter}<source_entity>{tuple_delimiter}<target_entity>{tuple_delimiter}<relationship_description>{tuple_delimiter}<relationship_keywords>{tuple_delimiter}<relationship_strength>)
+
+3. 识别总结整个文本主要概念、主题或话题的高级关键词。这些应捕捉文档中的总体思想。
+内容级关键词的格式为 ("content_keywords"{tuple_delimiter}<high_level_keywords>)
+
+4. 以 {language} 返回步骤 1 和 2 中识别的所有实体和关系的列表。使用 **{record_delimiter}** 作为列表分隔符。
+
+5. 完成后，输出 {completion_delimiter}
+
+---输出---
+
+请在下方使用相同的格式添加它们：\n""".strip()
+
+PROMPTS["entity_if_loop_extraction"] = """
+---目标---
+
+似乎仍然遗漏了一些实体。
+
+---输出---
+
+如果仍然有需要添加的实体，请仅回答 `YES` 或 `NO`。
+""".strip()
 
 PROMPTS["fail_response"] = "对不起，我无法回答这个问题。[no-context]"
 
 PROMPTS["rag_response"] = """---角色---
 
-您是一个响应用户查询有关下方知识库的有用助手。
+你是一个乐于助人的助手，负责根据下面提供的知识库回答用户的提问。
 
 ---目标---
 
-基于知识库生成简洁的回答，并遵循响应规则，考虑会话历史和当前查询。总结知识库中的所有信息，并结合与知识库相关的通用知识。不要包含知识库中未提供的信息。
+根据知识库生成简洁的回答，并遵循响应规则，同时考虑对话历史和当前提问。总结所提供的知识库中的所有信息，并结合与知识库相关的常识。不要包含知识库中没有提供的信息。
 
-处理带时间戳的关系时：
-1. 每个关系都有一个 "created_at" 时间戳，表示我们获取此知识的时间
-2. 遇到冲突关系时，考虑语义内容和时间戳
-3. 不要自动优先最近创建的关系 - 根据上下文判断
-4. 对于时间特定查询，优先考虑内容中的时间信息，然后再考虑创建时间戳
+处理带有时间戳的关系时：
+1. 每个关系都有一个 "created_at" 时间戳，指示我们何时获得此知识
+2. 当遇到冲突的关系时，请同时考虑语义内容和时间戳
+3. 不要自动偏好最近创建的关系 - 根据上下文进行判断
+4. 对于特定时间的查询，优先考虑内容中的时间信息，然后再考虑创建时间戳
 
----会话历史---
+---对话历史---
 {history}
 
 ---知识库---
@@ -122,28 +232,28 @@ PROMPTS["rag_response"] = """---角色---
 ---响应规则---
 
 - 目标格式和长度：{response_type}
-- 使用 markdown 格式并适当使用标题
-- 请用与用户问题相同的语言回答。
-- 确保响应与会话历史保持连续性。
+- 使用 Markdown 格式，并包含适当的章节标题
+- 请使用与用户问题相同的语言进行回答。
+- 确保回答与对话历史保持连贯性。
+- 在末尾的“参考资料”部分列出最多 5 个最重要的参考来源。清楚地表明每个来源是来自知识图谱 (KG) 还是向量数据 (DC)，如果可用，请包含文件路径，格式如下：[KG/DC] 文件路径
 - 如果不知道答案，请直接说明。
-- 不要编造任何信息。不要包含知识库中未提供的信息。
-"""
+- 不要捏造信息。不要包含数据来源未提供的信息。"""
 
 PROMPTS["keywords_extraction"] = """---角色---
 
-您是一个识别用户查询和会话历史中高阶和低阶关键词的有用助手。
+你是一个乐于助人的助手，负责识别用户查询和对话历史中的高级和低级关键词。
 
 ---目标---
 
-根据查询和会话历史，列出高阶和低阶关键词。高阶关键词关注总体概念或主题，而低阶关键词关注具体实体、细节或具体术语。
+给定查询和对话历史，列出高级和低级关键词。高级关键词侧重于总体概念或主题，而低级关键词侧重于特定实体、细节或具体术语。
 
----指令---
+---说明---
 
-- 考虑当前查询和相关会话历史中的关键词
-- 以 JSON 格式输出关键词
-- JSON 应有两个键：
-  - "high_level_keywords" 用于总体概念或主题
-  - "low_level_keywords" 用于具体实体或细节
+- 提取关键词时，请同时考虑当前查询和相关的对话历史
+- 以 JSON 格式输出关键词，它将被 JSON 解析器解析，请勿在输出中添加任何额外内容
+- JSON 应具有两个键：
+  - "high_level_keywords"：用于表示总体概念或主题
+  - "low_level_keywords"：用于表示特定实体或细节
 
 ######################
 ---示例---
@@ -151,186 +261,53 @@ PROMPTS["keywords_extraction"] = """---角色---
 {examples}
 
 #############################
----实际数据---
+---真实数据---
 ######################
-Conversation History:
+对话历史:
 {history}
 
-Current Query: {query}
+当前查询: {query}
 ######################
-输出应为人类可读文本，而不是 Unicode 字符。保持与查询相同的语言。
-Output:
+`输出` 应该是人类可读的文本，而不是 Unicode 字符。保持与 `Query` 相同的语言。
+输出:
 
 """
 
-PROMPTS["keywords_extraction_examples"] = [
-    """示例 1:
-
-Query: "国际贸易如何影响全球经济稳定？"
-################
-Output:
-{
-  "high_level_keywords": ["国际贸易", "全球经济稳定", "经济影响"],
-  "low_level_keywords": ["贸易协定", "关税", "货币兑换", "进口", "出口"]
-}
-#############################""",
-    """示例 2:
-
-Query: "森林砍伐对生物多样性有何环境后果？"
-################
-Output:
-{
-  "high_level_keywords": ["环境后果", "森林砍伐", "生物多样性丧失"],
-  "low_level_keywords": ["物种灭绝", "栖息地破坏", "碳排放", "雨林", "生态系统"]
-}
-#############################""",
-    """示例 3:
-
-Query: "教育在减少贫困方面的作用是什么？"
-################
-Output:
-{
-  "high_level_keywords": ["教育", "减贫", "社会经济发展"],
-  "low_level_keywords": ["学校准入", "识字率", "职业培训", "收入不平等"]
-}
-#############################""",
-]
-
+PROMPTS["keywords_extraction_examples"] = []
 
 PROMPTS["naive_rag_response"] = """---角色---
 
-您是一个响应用户查询有关下方文档片段的有用助手。
+你是一个有帮助的助手，负责回答用户查询。
+使用{language}作为输出语言。
 
----目标---
+---步骤---
+1. 根据你的知识和提供的上下文回答问题。
+2. 如果无法回答，回答"对不起，我无法回答这个问题。[no-context]"
 
-基于文档片段生成简洁的回答，并遵循响应规则，考虑会话历史和当前查询。总结文档片段中的所有信息，并结合与文档片段相关的通用知识。不要包含文档片段中未提供的信息。
+---上下文---
+{context}
 
-处理带时间戳的内容时：
-1. 每个内容都有一个 "created_at" 时间戳，表示我们获取此知识的时间
-2. 遇到冲突信息时，考虑内容和时间戳
-3. 不要自动优先最近的内容 - 根据上下文判断
-4. 对于时间特定查询，优先考虑内容中的时间信息，然后再考虑创建时间戳
+---问题---
+{question}
 
----会话历史---
-{history}
-
----文档片段---
-{content_data}
-
----响应规则---
-
-- 目标格式和长度：{response_type}
-- 使用 markdown 格式并适当使用标题
-- 请用与用户问题相同的语言回答。
-- 确保响应与会话历史保持连续性。
-- 如果不知道答案，请直接说明。
-- 不要编造任何信息。不要包含文档片段中未提供的信息。
-"""
-
-
-PROMPTS["similarity_check"] = """请分析这两个问题之间的相似性：
-
-问题 1: {original_prompt}
-问题 2: {cached_prompt}
-
-请评估这两个问题是否语义相似，以及问题 2 的答案是否可以用来回答问题 1，直接提供一个 0 到 1 之间的相似度评分。
-
-相似度评分标准：
-0: 完全不相关或答案不能重复使用，包括但不限于：
-   - 问题涉及不同主题
-   - 提到的地点不同
-   - 提到的时间不同
-   - 提到的具体个人不同
-   - 提到的具体事件不同
-   - 提到的背景信息不同
-   - 关键条件不同
-1: 完全相同且答案可以直接重复使用
-0.5: 部分相关且答案需要修改才能使用
-仅返回 0-1 之间的数字，不附加任何额外内容。
+---回答---
 """
 
 PROMPTS["mix_rag_response"] = """---角色---
 
-您是一个响应用户查询有关下方数据源的有用助手。
+你是一个有帮助的助手，负责结合知识库和通用知识回答用户查询。
+使用{language}作为输出语言。
 
----目标---
+---步骤---
+1. 首先尝试从知识库中回答问题。
+2. 如果知识库中没有足够信息，结合你的通用知识回答。
+3. 如果完全无法回答，回答"对不起，我无法回答这个问题。[no-context]"
 
-基于提供的数据源生成简洁的回答，并遵循响应规则，考虑会话历史和当前查询。数据源包含两部分：知识图谱(KG)和文档片段(DC)。总结所有提供的数据源中的信息，并结合与数据源相关的通用知识。不要包含数据源中未提供的信息。
+---知识库---
+{context}
 
-处理带时间戳的信息时：
-1. 每个信息（关系和内容）都有一个 "created_at" 时间戳，表示我们获取此知识的时间。
-2. 遇到冲突信息时，同时考虑内容/关系和时间戳。
-3. 不要自动优先最近的信息 - 根据上下文判断。
-4. 对于时间特定查询，优先考虑内容中的时间信息，然后再考虑创建时间戳。
+---问题---
+{question}
 
----会话历史---
-{history}
-
----数据源---
-
-1. 来自知识图谱(KG):
-{kg_context}
-
-2. 来自文档片段(DC):
-{vector_context}
-
----响应规则---
-
-- 目标格式和长度：{response_type}
-- 使用 markdown 格式并适当使用标题
-- 请用与用户问题相同的语言回答。
-- 确保响应与会话历史保持连续性。
-- 组织答案，专注于每个主要观点或方面。
-- 使用清晰且描述性的标题反映内容。
-- 在“参考文献”部分列出最多 5 个最重要的参考来源。明确指出每个来源是来自知识图谱 (KG) 还是向量数据 (DC)，格式如下：[KG/DC] 来源内容
-- 如果不知道答案，请直接说明。不要编造任何信息。
-- 不要包含数据源中未提供的信息。"""
-
-
-PROMPTS["fusion"] = """
-参考下面2个示例，将指示代词替换为具体人物的名字。
-示例一
-已知对话中 韩梅梅 的 妈妈 是 王淑芬。
-请阅读以下对话，并将对话中 "我妈妈", "你妈妈" 都替换成 韩梅梅 的 妈妈 的具体名字，即 "王淑芬"。
-对话：
-韩梅梅: 今天我妈妈身体不舒服，想请假一天。
-老师: 好的，那你妈妈要多注意休息。
-韩梅梅: 妈妈的电话号码是18081959492。
-替换后的对话：
-韩梅梅: 今天王淑芬身体不舒服，想请假一天。
-老师: 好的，那王淑芬要多注意休息。
-韩梅梅: 王淑芬的电话号码是18081959492。
-
-示例二
-已知对话中 "他" 指的是 张强，并且 张强 的 妹妹 是 张小丽。
-请阅读以下对话，并将对话中 "他的妹妹" 这个短语，替换成 张强 的 妹妹 的具体名字，即 "张小丽"。
-对话：
-李明: 你看到他的妹妹了吗？ 她今天穿得很漂亮。
-王芳: 看到了，他的妹妹确实很漂亮。
-替换后的对话：
-李明: 你看到张小丽了吗？ 张小丽今天穿得很漂亮。
-王芳: 看到了，张小丽确实很漂亮。
-"""
-
-PROMPTS["synonym"] = """
-请将上面的聊天对话按照下面的要求处理后重新输出
-
-将文本中实体按照下面近义词列表进行规范化为冒号左边的称谓
-近义词列表
-父亲：爸爸、爹、老爸,
-母亲：妈妈、妈、娘、老妈、妈咪、阿妈,
-祖父：爷爷、爷、阿爷、老爷,
-祖母：奶奶、奶、阿奶、老奶,
-外祖父：外公、姥爷、公公,
-外祖母：外婆、姥姥、婆婆,
-丈夫：老公、先生、那口子、孩儿他爹、当家的、老伴、夫君,
-妻子：老婆、太太、那口子、孩儿他妈、当家的、老伴、夫人,
-儿媳妇：儿媳,
-女婿：小女婿,
-儿子：儿、娃、小子,
-女儿：妮儿、丫头、闺女,
-哥哥：哥哥、哥、大哥、阿哥,
-姐姐：姐姐、姐、大姐、阿姐,
-弟弟：弟弟、弟、小弟、老弟,
-妹妹：妹妹、妹、小妹、老妹,
+---回答---
 """
