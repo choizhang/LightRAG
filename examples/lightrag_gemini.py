@@ -1,6 +1,7 @@
 # pip install -q -U google-genai to use gemini as a client
 
 import os
+import asyncio
 import numpy as np
 import nest_asyncio
 from google import genai
@@ -73,12 +74,12 @@ async def embedding_func(texts: list[str]) -> np.ndarray:
 # function test
 async def test_funcs():
     result = await llm_model_func("""
-
+你是谁
                                   """)
     print("llm_model_func: ", result)
 
 
-# asyncio.run(test_funcs())
+asyncio.run(test_funcs())
 
 
 async def initialize_rag():
