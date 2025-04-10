@@ -1,6 +1,7 @@
 # pip install -q -U google-genai to use gemini as a client
 
 import os
+import asyncio
 import numpy as np
 import nest_asyncio
 from google import genai
@@ -49,16 +50,29 @@ async def llm_model_func(
     combined_prompt += f"user: {prompt}"
 
     # 3. Call the Gemini model
-    response = client.models.generate_content(
+    response = client.models.generate_content_stream(
         model="gemini-2.0-flash",
         contents=[combined_prompt],
         config=types.GenerateContentConfig(
             max_output_tokens=5000, temperature=0, top_k=10
         ),
     )
+    # for chunk in response:
+    #     print(chunk.text)
+    #     print("_" * 80)
+
+    print("流式输出结果:")
+    full_response = ""
+    for chunk in response:
+        if chunk.text:
+            print(chunk.text, end="", flush=True)
+            full_response += chunk.text
+            print("_" * 40)
+
+    print("\n\n完整响应:", full_response)
 
     # 4. Return the response text
-    return response.text
+    return full_response
 
 
 async def embedding_func(texts: list[str]) -> np.ndarray:
@@ -73,12 +87,12 @@ async def embedding_func(texts: list[str]) -> np.ndarray:
 # function test
 async def test_funcs():
     result = await llm_model_func("""
-
+输出500字春天的作文
                                   """)
     print("llm_model_func: ", result)
 
 
-# asyncio.run(test_funcs())
+asyncio.run(test_funcs())
 
 
 async def initialize_rag():
