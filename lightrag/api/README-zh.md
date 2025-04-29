@@ -133,7 +133,7 @@ MAX_ASYNC=4
 
 ### 将 Lightrag 安装为 Linux 服务
 
-从示例文件 `lightrag.sevice.example` 创建您的服务文件 `lightrag.sevice`。修改服务文件中的 WorkingDirectory 和 ExecStart：
+从示例文件 `lightrag.service.example` 创建您的服务文件 `lightrag.service`。修改服务文件中的 WorkingDirectory 和 ExecStart：
 
 ```text
 Description=LightRAG Ollama Service
@@ -316,9 +316,10 @@ MongoKVStorage   MogonDB
 ```
 NetworkXStorage      NetworkX(默认)
 Neo4JStorage         Neo4J
-PGGraphStorage       Postgres
-AGEStorage           AGE
+PGGraphStorage       PostgreSQL with AGE plugin
 ```
+
+> 在测试中Neo4j图形数据库相比PostgreSQL AGE有更好的性能表现。
 
 * VECTOR_STORAGE 支持的实现名称
 

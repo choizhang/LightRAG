@@ -266,7 +266,9 @@
           "entity_type": "النوع",
           "source_id": "معرف المصدر",
           "Neighbour": "الجار",
-          "file_path": "المصدر"
+          "file_path": "المصدر",
+          "keywords": "الكلمات الرئيسية",
+          "weight": "الوزن"
         }
       },
       "edge": {
@@ -288,9 +290,9 @@
       "label": "التسمية",
       "placeholder": "ابحث في التسميات...",
       "andOthers": "و {{count}} آخرون",
-      "refreshTooltip": "إعادة تحميل بيانات الرسم البياني"
+      "refreshTooltip": "إعادة تحميل البيانات (بعد إضافة الملف)"
     },
-    "emptyGraph": "الرسم البياني فارغ"
+    "emptyGraph": "فارغ (حاول إعادة التحميل)"
   },
   "retrievePanel": {
     "chatMessage": {
@@ -301,8 +303,10 @@
       "startPrompt": "ابدأ الاسترجاع بكتابة استفسارك أدناه",
       "clear": "مسح",
       "send": "إرسال",
-      "placeholder": "اكتب استفسارك...",
-      "error": "خطأ: فشل الحصول على الرد"
+      "placeholder": "اكتب استفسارك (بادئة وضع الاستعلام: /<Query Mode>)",
+      "error": "خطأ: فشل الحصول على الرد",
+      "queryModeError": "يُسمح فقط بأنماط الاستعلام التالية: {{modes}}",
+      "queryModePrefixInvalid": "بادئة وضع الاستعلام غير صالحة. استخدم: /<الوضع> [مسافة] استفسارك"
     },
     "querySettings": {
       "parametersTitle": "المعلمات",

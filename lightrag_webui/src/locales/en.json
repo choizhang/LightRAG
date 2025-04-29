@@ -266,7 +266,9 @@
           "entity_type": "Type",
           "source_id": "SrcID",
           "Neighbour": "Neigh",
-          "file_path": "Source"
+          "file_path": "Source",
+          "keywords": "Keys",
+          "weight": "Weight"
         }
       },
       "edge": {
@@ -288,9 +290,9 @@
       "label": "Label",
       "placeholder": "Search labels...",
       "andOthers": "And {count} others",
-      "refreshTooltip": "Reload graph data"
+      "refreshTooltip": "Reload data(After file added)"
     },
-    "emptyGraph": "Graph Is Empty"
+    "emptyGraph": "Empty(Try Reload Again)"
   },
   "retrievePanel": {
     "chatMessage": {
@@ -301,8 +303,10 @@
       "startPrompt": "Start a retrieval by typing your query below",
       "clear": "Clear",
       "send": "Send",
-      "placeholder": "Type your query...",
-      "error": "Error: Failed to get response"
+      "placeholder": "Enter your query (Support prefix: /<Query Mode>)",
+      "error": "Error: Failed to get response",
+      "queryModeError": "Only supports the following query modes: {{modes}}",
+      "queryModePrefixInvalid": "Invalid query mode prefix. Use: /<mode> [space] your query"
     },
     "querySettings": {
       "parametersTitle": "Parameters",
