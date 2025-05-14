@@ -8,7 +8,7 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 from lightrag.utils import EmbeddingFunc
-from lightrag import LightRAG
+from lightrag import LightRAG, QueryParam
 from lightrag.kg.shared_storage import initialize_pipeline_status
 from lightrag.llm.siliconcloud import siliconcloud_embedding
 from lightrag.utils import setup_logger
@@ -79,7 +79,7 @@ async def test_funcs():
     print("llm_model_func: ", result)
 
 
-asyncio.run(test_funcs())
+# asyncio.run(test_funcs())
 
 
 async def initialize_rag():
@@ -108,7 +108,7 @@ async def initialize_rag():
 
 def main():
     # Initialize RAG instance
-    # rag = asyncio.run(initialize_rag())
+    rag = asyncio.run(initialize_rag())
 
     _custom_kg = {
         "chunks": [
@@ -152,6 +152,9 @@ def main():
     # with open("./ragtest/lilei/lilei_1.txt", "r") as f:
     #     rag.insert(f.read(), file_paths=["./ragtest/lilei/lilei_1.txt"])
 
+    # with open("./ragtest/lilei/lilei_1.txt", "r", encoding="utf-8") as f:
+    #     rag.insert(f.read())
+
     # 添加关系推理
     # asyncio.run(rag.infer_new_relationships())
 
@@ -160,7 +163,7 @@ def main():
     #     """
 
     _question = """
-李进的爸爸是谁？
+你们班的韩梅梅是谁？
     """
 
     # print(
@@ -175,14 +178,14 @@ def main():
     #     rag.query(_question, param=QueryParam(mode="global"))
     # )
 
-    # print(
-    #     rag.query(
-    #         _question,
-    #         param=QueryParam(
-    #             mode="hybrid", only_need_context=False, only_need_prompt=False, top_k=60
-    #         ),
-    #     )
-    # )
+    print(
+        rag.query(
+            _question,
+            param=QueryParam(
+                mode="hybrid", only_need_context=False, only_need_prompt=False, top_k=60
+            ),
+        )
+    )
 
 
 if __name__ == "__main__":

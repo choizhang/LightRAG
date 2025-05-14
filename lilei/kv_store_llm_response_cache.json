@@ -41,6 +41,24 @@
       "embedding_min": -0.1446055918931961,
       "embedding_max": 0.22418320178985596,
       "original_prompt": "李进的爸爸是谁？"
+    },
+    "2a4b8dc3bdb3f4ba1f56a6ae658b8896": {
+      "return": "{\"high_level_keywords\": [\"\\u5b66\\u751f\", \"\\u73ed\\u7ea7\"], \"low_level_keywords\": [\"\\u97e9\\u6885\\u6885\", \"\\u540c\\u5b66\"]}",
+      "cache_type": "keywords",
+      "embedding": null,
+      "embedding_shape": null,
+      "embedding_min": null,
+      "embedding_max": null,
+      "original_prompt": "你们班的韩梅梅是谁？"
+    },
+    "54c1b7322963a33f8e5d1accfbc3bad1": {
+      "return": "根据我所掌握的信息，韩梅梅是李进的妈妈，职业是初中物理老师，她的手机号码是18084268123。\n\n## 参考文献\n* [KG] ./ragtest/lilei/lilei_1.txt\n* [DC] ./ragtest/lilei/lilei_1.txt\n",
+      "cache_type": "query",
+      "embedding": null,
+      "embedding_shape": null,
+      "embedding_min": null,
+      "embedding_max": null,
+      "original_prompt": "你们班的韩梅梅是谁？"
     }
   }
 }

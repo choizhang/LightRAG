@@ -91,8 +91,8 @@ async def test_funcs():
     #                                   """)
     #     print("llm_model_func: ", result)
 
-    entity1 = "他感到非常兴奋和快乐"
-    entity2 = "她现在的心情非常沮丧和悲伤"
+    entity1 = "漂亮国"
+    entity2 = "美国"
 
     text1_embedding = await embedding_func_gemini(entity1)
     text2_embedding = await embedding_func_gemini(entity2)
