@@ -59,6 +59,73 @@
       "embedding_min": null,
       "embedding_max": null,
       "original_prompt": "你们班的韩梅梅是谁？"
+    },
+    "5bd00c5cb84228ff7ff13ea8c3a6453c": {
+      "return": "{\"high_level_keywords\": [\"\\u4eba\\u7269\", \"\\u8eab\\u4efd\"], \"low_level_keywords\": [\"\\u97e9\\u6885\\u6885\"]}",
+      "cache_type": "keywords",
+      "embedding": null,
+      "embedding_shape": null,
+      "embedding_min": null,
+      "embedding_max": null,
+      "original_prompt": "韩梅梅是谁"
+    },
+    "0a79fdcf5376f4e6fcfa4e42a1f5d24b": {
+      "return": "# 韩梅梅的信息\n\n韩梅梅是李进的妈妈，职业是初中物理老师，手机号码是18084268123。\n\n## 家庭关系\n\n*   她是李进的母亲。\n\n## 职业\n\n*   她是初中物理老师。\n\n## 联系方式\n\n*   她的手机号码是18084268123。\n\n## 参考文献\n\n*   \\[KG] ./ragtest/lilei/lilei\\_1.txt\n*   \\[DC] ./ragtest/lilei/lilei\\_1.txt\n",
+      "cache_type": "query",
+      "embedding": null,
+      "embedding_shape": null,
+      "embedding_min": null,
+      "embedding_max": null,
+      "original_prompt": "韩梅梅是谁"
+    },
+    "8e0688e8328a6bcba129be290d554a69": {
+      "return": "{\"high_level_keywords\": [\"\\u4eba\\u7269\", \"\\u4e2a\\u4eba\\u4fe1\\u606f\"], \"low_level_keywords\": [\"\\u674e\\u8fdb\", \"\\u8eab\\u4efd\"]}",
+      "cache_type": "keywords",
+      "embedding": null,
+      "embedding_shape": null,
+      "embedding_min": null,
+      "embedding_max": null,
+      "original_prompt": "李进是谁"
+    },
+    "4c479ebb18c3ccf053b4a19ca1384763": {
+      "return": "李进是一位蒙新小学一年级学生，居住在四川省成都市高新区新通大道千川阅小区6-1203，他的家庭成员包括爸爸李雷、妈妈韩梅梅、爷爷和奶奶。李进通过与家庭助手机器人Robot的对话，提供了自己的个人信息。\n\n## 家庭关系\n\n李进的爸爸是李雷，是一位在移动公司上班的程序员。他的妈妈是韩梅梅，是一位初中物理老师，手机号码是18084268123。李进的爷爷喜欢打篮球。\n\n## 居住信息\n\n李进住在龙灯山社区，详细地址是四川省成都市高新区新通大道千川阅小区6-1203。\n\n## 教育信息\n\n李进在蒙新小学读书，目前就读一年级。\n\n## 参考文献\n* [KG] ./ragtest/lilei/lilei_1.txt\n* [DC] ./ragtest/lilei/lilei_1.txt\n",
+      "cache_type": "query",
+      "embedding": null,
+      "embedding_shape": null,
+      "embedding_min": null,
+      "embedding_max": null,
+      "original_prompt": "李进是谁"
+    }
+  },
+  "naive": {
+    "1189562e8f42f802ad24be32b606fb2a": {
+      "return": "根据你提供的信息，李进住在四川省成都市高新区新通大道千川阅小区6-1203的龙灯山社区，在蒙新小学读一年级。他家有爸爸妈妈和爷爷奶奶。他的爸爸叫李雷，是移动公司的程序员，妈妈叫韩梅梅，是初中物理老师，手机号码是 18084268123。他爷爷喜欢打篮球。\n\n参考文献：\n* [DC] ./ragtest/lilei/lilei_1.txt\n",
+      "cache_type": "query",
+      "embedding": null,
+      "embedding_shape": null,
+      "embedding_min": null,
+      "embedding_max": null,
+      "original_prompt": "李进是谁"
+    }
+  },
+  "local": {
+    "b643ea59eb683b0e5d4591420e630bb1": {
+      "return": "{\"high_level_keywords\": [\"\\u4eba\\u7269\\u8bc6\\u522b\"], \"low_level_keywords\": [\"\\u674e\\u8fdb\", \"\\u8eab\\u4efd\"]}",
+      "cache_type": "keywords",
+      "embedding": null,
+      "embedding_shape": null,
+      "embedding_min": null,
+      "embedding_max": null,
+      "original_prompt": "李进是谁"
+    },
+    "14816e84a6ac60ff4796530888bb6fb8": {
+      "return": "李进是一个学生，住在龙灯山社区，详细地址是四川省成都市高新区新通大道千川阅小区6-1203。他的爸爸是李雷，是一名在移动公司上班的程序员。他的妈妈是韩梅梅，是一名初中物理老师，手机号码是18084268123。\n\n## 参考文献\n* [KG] ./ragtest/lilei/lilei_1.txt\n* [DC] ./ragtest/lilei/lilei_1.txt\n",
+      "cache_type": "query",
+      "embedding": null,
+      "embedding_shape": null,
+      "embedding_min": null,
+      "embedding_max": null,
+      "original_prompt": "李进是谁"
     }
   }
 }
