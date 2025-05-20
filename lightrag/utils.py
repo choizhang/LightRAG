@@ -13,10 +13,46 @@ from dataclasses import dataclass
 from functools import wraps
 from hashlib import md5
 from typing import Any, Protocol, Callable, TYPE_CHECKING, List
-import xml.etree.ElementTree as ET
 import numpy as np
 from lightrag.prompt_cn import PROMPTS
 from dotenv import load_dotenv
+from lightrag.constants import (
+    DEFAULT_LOG_MAX_BYTES,
+    DEFAULT_LOG_BACKUP_COUNT,
+    DEFAULT_LOG_FILENAME,
+)
+
+
+def get_env_value(
+    env_key: str, default: any, value_type: type = str, special_none: bool = False
+) -> any:
+    """
+    Get value from environment variable with type conversion
+
+    Args:
+        env_key (str): Environment variable key
+        default (any): Default value if env variable is not set
+        value_type (type): Type to convert the value to
+        special_none (bool): If True, return None when value is "None"
+
+    Returns:
+        any: Converted value from environment or default
+    """
+    value = os.getenv(env_key)
+    if value is None:
+        return default
+
+    # Handle special case for "None" string
+    if special_none and value == "None":
+        return None
+
+    if value_type is bool:
+        return value.lower() in ("true", "1", "yes", "t", "on")
+    try:
+        return value_type(value)
+    except (ValueError, TypeError):
+        return default
+
 
 # Use TYPE_CHECKING to avoid circular imports
 if TYPE_CHECKING:
@@ -152,14 +188,16 @@ def setup_logger(
         # Get log file path
         if log_file_path is None:
             log_dir = os.getenv("LOG_DIR", os.getcwd())
-            log_file_path = os.path.abspath(os.path.join(log_dir, "lightrag.log"))
+            log_file_path = os.path.abspath(os.path.join(log_dir, DEFAULT_LOG_FILENAME))
 
         # Ensure log directory exists
         os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
 
         # Get log file max size and backup count from environment variables
-        log_max_bytes = int(os.getenv("LOG_MAX_BYTES", 10485760))  # Default 10MB
-        log_backup_count = int(os.getenv("LOG_BACKUP_COUNT", 5))  # Default 5 backups
+        log_max_bytes = get_env_value("LOG_MAX_BYTES", DEFAULT_LOG_MAX_BYTES, int)
+        log_backup_count = get_env_value(
+            "LOG_BACKUP_COUNT", DEFAULT_LOG_BACKUP_COUNT, int
+        )
 
         try:
             # Add file handler
@@ -287,6 +325,9 @@ def priority_limit_async_func_call(max_size: int, max_queue_size: int = 1000):
     """
 
     def final_decro(func):
+        # Ensure func is callable
+        if not callable(func):
+            raise TypeError(f"Expected a callable object, got {type(func)}")
         queue = asyncio.PriorityQueue(maxsize=max_queue_size)
         tasks = set()
         initialization_lock = asyncio.Lock()
@@ -297,6 +338,7 @@ def priority_limit_async_func_call(max_size: int, max_queue_size: int = 1000):
 
         # Track active future objects for cleanup
         active_futures = weakref.WeakSet()
+        reinit_count = 0  # Reinitialization counter to track system health
 
         # Worker function to process tasks in the queue
         async def worker():
@@ -345,10 +387,11 @@ def priority_limit_async_func_call(max_size: int, max_queue_size: int = 1000):
                         logger.error(f"limit_async: Critical error in worker: {str(e)}")
                         await asyncio.sleep(0.1)  # Prevent high CPU usage
             finally:
-                logger.warning("limit_async: Worker exiting")
+                logger.debug("limit_async: Worker exiting")
 
         async def health_check():
             """Periodically check worker health status and recover"""
+            nonlocal initialized
             try:
                 while not shutdown_event.is_set():
                     await asyncio.sleep(5)  # Check every 5 seconds
@@ -377,7 +420,8 @@ def priority_limit_async_func_call(max_size: int, max_queue_size: int = 1000):
             except Exception as e:
                 logger.error(f"limit_async: Error in health check: {str(e)}")
             finally:
-                logger.warning("limit_async: Health check task exiting")
+                logger.debug("limit_async: Health check task exiting")
+                initialized = False
 
         async def ensure_workers():
             """Ensure worker threads and health check system are available
@@ -386,7 +430,7 @@ def priority_limit_async_func_call(max_size: int, max_queue_size: int = 1000):
             If not, it performs a one-time initialization of all worker threads
             and starts the health check system.
             """
-            nonlocal initialized, worker_health_check_task, tasks
+            nonlocal initialized, worker_health_check_task, tasks, reinit_count
 
             if initialized:
                 return
@@ -395,10 +439,30 @@ def priority_limit_async_func_call(max_size: int, max_queue_size: int = 1000):
                 if initialized:
                     return
 
-                logger.info("limit_async: Initializing worker system")
+                # Increment reinitialization counter if this is not the first initialization
+                if reinit_count > 0:
+                    reinit_count += 1
+                    logger.warning(
+                        f"limit_async: Reinitializing needed (count: {reinit_count})"
+                    )
+                else:
+                    reinit_count = 1  # First initialization
 
-                # Create initial worker tasks
-                for _ in range(max_size):
+                # Check for completed tasks and remove them from the task set
+                current_tasks = set(tasks)
+                done_tasks = {t for t in current_tasks if t.done()}
+                tasks.difference_update(done_tasks)
+
+                # Log active tasks count during reinitialization
+                active_tasks_count = len(tasks)
+                if active_tasks_count > 0 and reinit_count > 1:
+                    logger.warning(
+                        f"limit_async: {active_tasks_count} tasks still running during reinitialization"
+                    )
+
+                # Create initial worker tasks, only adding the number needed
+                workers_needed = max_size - active_tasks_count
+                for _ in range(workers_needed):
                     task = asyncio.create_task(worker())
                     tasks.add(task)
                     task.add_done_callback(tasks.discard)
@@ -407,7 +471,7 @@ def priority_limit_async_func_call(max_size: int, max_queue_size: int = 1000):
                 worker_health_check_task = asyncio.create_task(health_check())
 
                 initialized = True
-                logger.info("limit_async: Worker system initialized")
+                logger.info(f"limit_async: {workers_needed} new workers initialized")
 
         async def shutdown():
             """Gracefully shut down all workers and the queue"""
@@ -476,7 +540,7 @@ def priority_limit_async_func_call(max_size: int, max_queue_size: int = 1000):
 
             nonlocal counter
             async with initialization_lock:
-                current_count = counter
+                current_count = counter  # Use local variable to avoid race conditions
                 counter += 1
 
             # Try to put the task into the queue, supporting timeout
@@ -485,6 +549,7 @@ def priority_limit_async_func_call(max_size: int, max_queue_size: int = 1000):
                     # Use timeout to wait for queue space
                     try:
                         await asyncio.wait_for(
+                            # current_count is used to ensure FIFO order
                             queue.put((_priority, current_count, future, args, kwargs)),
                             timeout=_queue_timeout,
                         )
@@ -494,6 +559,7 @@ def priority_limit_async_func_call(max_size: int, max_queue_size: int = 1000):
                         )
                 else:
                     # No timeout, may wait indefinitely
+                    # current_count is used to ensure FIFO order
                     await queue.put((_priority, current_count, future, args, kwargs))
             except Exception as e:
                 # Clean up the future
@@ -686,106 +752,33 @@ def truncate_list_by_token_size(
     return list_data
 
 
-def list_of_list_to_json(data: list[list[str]]) -> list[dict[str, str]]:
-    if not data or len(data) <= 1:
-        return []
+def process_combine_contexts(*context_lists):
+    """
+    Combine multiple context lists and remove duplicate content
 
-    header = data[0]
-    result = []
+    Args:
+        *context_lists: Any number of context lists
 
-    for row in data[1:]:
-        if len(row) >= 2:
-            item = {}
-            for i, field_name in enumerate(header):
-                if i < len(row):
-                    item[field_name] = str(row[i])
-                else:
-                    item[field_name] = ""
-            result.append(item)
-
-    return result
-
-
-def save_data_to_file(data, file_name):
-    with open(file_name, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-
-
-def xml_to_json(xml_file):
-    try:
-        tree = ET.parse(xml_file)
-        root = tree.getroot()
-
-        # Print the root element's tag and attributes to confirm the file has been correctly loaded
-        print(f"Root element: {root.tag}")
-        print(f"Root attributes: {root.attrib}")
-
-        data = {"nodes": [], "edges": []}
-
-        # Use namespace
-        namespace = {"": "http://graphml.graphdrawing.org/xmlns"}
-
-        for node in root.findall(".//node", namespace):
-            node_data = {
-                "id": node.get("id").strip('"'),
-                "entity_type": node.find("./data[@key='d0']", namespace).text.strip('"')
-                if node.find("./data[@key='d0']", namespace) is not None
-                else "",
-                "description": node.find("./data[@key='d1']", namespace).text
-                if node.find("./data[@key='d1']", namespace) is not None
-                else "",
-                "source_id": node.find("./data[@key='d2']", namespace).text
-                if node.find("./data[@key='d2']", namespace) is not None
-                else "",
-            }
-            data["nodes"].append(node_data)
-
-        for edge in root.findall(".//edge", namespace):
-            edge_data = {
-                "source": edge.get("source").strip('"'),
-                "target": edge.get("target").strip('"'),
-                "weight": float(edge.find("./data[@key='d3']", namespace).text)
-                if edge.find("./data[@key='d3']", namespace) is not None
-                else 0.0,
-                "description": edge.find("./data[@key='d4']", namespace).text
-                if edge.find("./data[@key='d4']", namespace) is not None
-                else "",
-                "keywords": edge.find("./data[@key='d5']", namespace).text
-                if edge.find("./data[@key='d5']", namespace) is not None
-                else "",
-                "source_id": edge.find("./data[@key='d6']", namespace).text
-                if edge.find("./data[@key='d6']", namespace) is not None
-                else "",
-            }
-            data["edges"].append(edge_data)
-
-        # Print the number of nodes and edges found
-        print(f"Found {len(data['nodes'])} nodes and {len(data['edges'])} edges")
-
-        return data
-    except ET.ParseError as e:
-        print(f"Error parsing XML file: {e}")
-        return None
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
-
-
-def process_combine_contexts(
-    hl_context: list[dict[str, str]], ll_context: list[dict[str, str]]
-):
+    Returns:
+        Combined context list with duplicates removed
+    """
     seen_content = {}
     combined_data = []
 
-    for item in hl_context + ll_context:
-        content_dict = {k: v for k, v in item.items() if k != "id"}
-        content_key = tuple(sorted(content_dict.items()))
-        if content_key not in seen_content:
-            seen_content[content_key] = item
-            combined_data.append(item)
+    # Iterate through all input context lists
+    for context_list in context_lists:
+        if not context_list:  # Skip empty lists
+            continue
+        for item in context_list:
+            content_dict = {k: v for k, v in item.items() if k != "id"}
+            content_key = tuple(sorted(content_dict.items()))
+            if content_key not in seen_content:
+                seen_content[content_key] = item
+                combined_data.append(item)
 
+    # Reassign IDs
     for i, item in enumerate(combined_data):
-        item["id"] = str(i)
+        item["id"] = str(i + 1)
 
     return combined_data
 
@@ -1635,6 +1628,9 @@ def normalize_extracted_info(name: str, is_entity=False) -> str:
     3. Preserve spaces within English text and numbers
     4. Replace Chinese parentheses with English parentheses
     5. Replace Chinese dash with English dash
+    6. Remove English quotation marks from the beginning and end of the text
+    7. Remove English quotation marks in and around chinese
+    8. Remove Chinese quotation marks
 
     Args:
         name: Entity name to normalize
