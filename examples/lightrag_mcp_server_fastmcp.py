@@ -21,7 +21,7 @@ gemini_api_key = os.getenv("GEMINI_API_KEY")
 siliconflow_api_key = os.getenv("SILICONFLOW_API_KEY")
 
 # 设置已经构建好的知识图谱工作目录
-WORKING_DIR = "/Users/choizhang/LightRAG/lilei"
+WORKING_DIR = "/Users/choizhang/LightRAG/rag_storage"
 
 
 # 定义 LLM 模型函数
@@ -93,8 +93,7 @@ async def initialize_rag_instance():
                 max_token_size=8192,
                 func=embedding_func,
             ),
-            enable_llm_cache=True,
-            embedding_cache_config={"enabled": True, "similarity_threshold": 0.95},
+            enable_llm_cache=False,
         )
         await rag_instance.initialize_storages()
         await initialize_pipeline_status()
@@ -125,28 +124,60 @@ async def perform_query(query_text: str, mode: str):
 mcp = FastMCP("lightrag-mcp")
 
 
-@mcp.tool("naive_search")
-async def naive_search(query_text: str) -> dict:
-    """执行 Naive Search"""
-    return await perform_query(query_text, "naive")
+# @mcp.tool("naive_search")
+# async def naive_search(query_text: str) -> dict:
+#     """执行 Naive Search"""
+#     return await perform_query(query_text, "naive")
 
 
-@mcp.tool("local_search")
-async def local_search(query_text: str) -> dict:
-    """执行 Local Search"""
-    return await perform_query(query_text, "local")
+# @mcp.tool("local_search")
+# async def local_search(query_text: str) -> dict:
+#     """执行 Local Search"""
+#     return await perform_query(query_text, "local")
 
 
-@mcp.tool("global_search")
-async def global_search(query_text: str) -> dict:
-    """执行 Global Search"""
-    return await perform_query(query_text, "global")
+# @mcp.tool("global_search")
+# async def global_search(query_text: str) -> dict:
+#     """执行 Global Search"""
+#     return await perform_query(query_text, "global")
 
 
-@mcp.tool("hybrid_search")
-async def hybrid_search(query_text: str) -> dict:
-    """执行 Hybrid Search"""
-    return await perform_query(query_text, "hybrid")
+# @mcp.tool("hybrid_search")
+# async def hybrid_search(query_text: str) -> dict:
+#     """执行 Hybrid Search"""
+#     return await perform_query(query_text, "hybrid")
+
+
+@mcp.tool("mix_search")
+async def mix_search(query_text: str) -> dict:
+    """执行混合模式查询 (Mix Search)"""
+    return await perform_query(query_text, "mix")
+
+
+@mcp.tool("ainsert")
+async def ainsert(
+    input: str | list[str],
+    ids: str | list[str] | None = None,
+    file_paths: str | list[str] | None = None,
+    split_by_character: str | None = None,
+    split_by_character_only: bool = False,
+) -> dict:
+    """异步插入文档到 LightRAG 实例"""
+    if rag_instance is None:
+        return {"status": "error", "message": "LightRAG 实例未初始化。"}
+    try:
+        await rag_instance.ainsert(
+            input=input,
+            ids=ids,
+            file_paths=file_paths,
+            split_by_character=split_by_character,
+            split_by_character_only=split_by_character_only,
+        )
+        print(123, input)
+        return {"status": "success", "message": "文档插入成功。"}
+    except Exception as e:
+        print(f"文档插入失败: {e}")
+        return {"status": "error", "message": f"文档插入失败: {e}"}
 
 
 async def main():

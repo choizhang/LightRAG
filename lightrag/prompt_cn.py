@@ -19,24 +19,27 @@ PROMPTS["DEFAULT_ENTITY_TYPES"] = [
     "事件",
     "职业",
     "工作单位",
-    "时间",
     "教育经历",
     "亲戚",
     "师生",
     "朋友",
     "地址",
+    "衣物",
+    "私人物品",
     "个人信息",
     "手机号码",
     "家庭信息",
     "设备管理",
 ]
 
+PROMPTS["DEFAULT_USER_PROMPT"] = "n/a"
+
 PROMPTS["entity_extraction"] = """---目标---
 给定一段机器人和家庭成员自然对话聊天内容，忽略Robot本身的实体和关系，忽略Robot在对话中的主观评价，识别文本中所有这些类型的实体以及实体跟实体之间的关系。将文本里面的内容进行知识融合，包括指代消解、消除歧义、消除矛盾等。
 使用 {language} 作为输出语言。
 
 ---步骤---
-1. 识别所有实体。对于每个识别出的实体，提取以下信息：
+1. 只提取已经发生或确定的事实、状态和关系的实体。忽略任何关于未来计划、打算、意图、可能性、猜测或未确定的陈述实体，忽略客套话、时间等一些无实际意义的实体。只关注过去时和现在时态的动词，对于将来时态、情态动词（如‘会’、‘可能’、‘打算’、‘希望’）修饰的实体请勿提取。“例如，如果对话中说‘我下周会去北京’，请不要提取‘我’，‘北京’这2个实体。但如果说‘我上周去了北京’或‘我正在北京’，则可以提取。”。对于每个识别出的实体，提取以下信息：
 - entity_name: 实体名称，使用与输入文本相同的语言。如果是英文，请大写名称。
 - entity_type: 以下类型之一：[{entity_types}]
 - entity_description: 对实体属性和活动的全面描述
@@ -76,79 +79,32 @@ PROMPTS["entity_extraction"] = """---目标---
 PROMPTS["entity_extraction_examples"] = [
     """示例 1:
 
-实体类型: [人物, 技术, 任务, 组织, 地点]
+实体类型: [人物, 爱好, 技能]
 文本:
 ```
-当 Alex 咬紧牙关时，挫败感的嗡嗡声在 Taylor 独断的确定性背景下显得沉闷。正是这种竞争的暗流让他保持警惕，感觉他和 Jordan 对发现的共同承诺是对 Cruz 日益狭隘的控制和秩序愿景的无声反抗。
-
-然后 Taylor 做了一件意想不到的事。他们在 Jordan 旁边停下，片刻间，带着近乎敬畏的神情观察着那个设备。“如果这项技术能被理解……” Taylor 轻声说道，“它可能会改变我们的游戏规则。对我们所有人来说。”
-
-早先潜在的轻视似乎动摇了，取而代之的是对他们手中之物重要性的不情愿的尊重。Jordan 抬起头，短暂的心跳间，他们的目光与 Taylor 的目光相遇，一场无言的意志冲突化为不安的休战。
-
-这是一个微小的转变，几乎难以察觉，但 Alex 内心点头注意到了。他们都是通过不同的道路来到这里的。
+李雷：嘿，韩梅梅，你今天看起来特别有精神啊，是不是有什么好事？
+韩梅梅：嗨，李雷，其实也没什么啦，就是昨晚睡得特别好。
+李雷：睡得好也是好事啊，我最近总是熬夜，感觉整个人都没精神了。
+韩梅梅：哎呀，你可别总是熬夜了，对身体不好。对了，你周末有什么计划吗？
+李雷：周末啊，我可能就在家打打游戏，看看电影什么的，你呢？
+韩梅梅：我啊，我打算去公园走走，呼吸一下新鲜空气，最近天气不错。
+李雷：听起来不错，我应该也出去活动活动。对了，你最近有没有发现新的爱好？
+韩梅梅：爱好啊，嗯...我最近发现我挺喜欢跳舞的，就是跟着音乐动一动，感觉挺放松的。
+李雷：跳舞啊，那挺好的，可以锻炼身体，还能放松心情。
+韩梅梅：是啊，我发现跳舞真的挺有趣的，而且还能认识一些新朋友。
+李雷：那下次有机会我也去试试，看看能不能跟上节奏。
+韩梅梅：好啊，随时欢迎，我们可以一起去舞蹈教室体验一下。
+李雷：那就这么定了，我得先去买双舒服的运动鞋。
+韩梅梅：哈哈，好的，那我们周末见，我先去准备一下我的舞蹈课程。
+李雷：好的，周末见，祝你今天过得愉快！
+韩梅梅：你也是，李雷，记得早点休息哦！
 ```
 
 输出:
-("entity"{tuple_delimiter}"Alex"{tuple_delimiter}"person"{tuple_delimiter}"Alex 是一个经历挫败感并观察其他角色动态的角色。"){record_delimiter}
-("entity"{tuple_delimiter}"Taylor"{tuple_delimiter}"person"{tuple_delimiter}"Taylor 被描绘成具有独断的确定性，并对一个设备表现出片刻的敬畏，表明其观点的转变。"){record_delimiter}
-("entity"{tuple_delimiter}"Jordan"{tuple_delimiter}"person"{tuple_delimiter}"Jordan 共同致力于发现，并与 Taylor 就一个设备进行了重要的互动。"){record_delimiter}
-("entity"{tuple_delimiter}"Cruz"{tuple_delimiter}"person"{tuple_delimiter}"Cruz 与控制和秩序的愿景相关联，影响着其他角色之间的动态。"){record_delimiter}
-("entity"{tuple_delimiter}"The Device"{tuple_delimiter}"technology"{tuple_delimiter}"该设备是故事的核心，具有潜在的改变游戏规则的影响，并受到 Taylor 的敬畏。"){record_delimiter}
-("relationship"{tuple_delimiter}"Alex"{tuple_delimiter}"Taylor"{tuple_delimiter}"Alex 受到 Taylor 独断确定性的影响，并观察到 Taylor 对设备态度的变化。"{tuple_delimiter}"权力动态, 视角转变"{tuple_delimiter}7){record_delimiter}
-("relationship"{tuple_delimiter}"Alex"{tuple_delimiter}"Jordan"{tuple_delimiter}"Alex 和 Jordan 共同致力于发现，这与 Cruz 的愿景形成对比。"{tuple_delimiter}"共同目标, 反抗"{tuple_delimiter}6){record_delimiter}
-("relationship"{tuple_delimiter}"Taylor"{tuple_delimiter}"Jordan"{tuple_delimiter}"Taylor 和 Jordan 就设备直接互动，导致了相互尊重和不安的休战时刻。"{tuple_delimiter}"冲突解决, 相互尊重"{tuple_delimiter}8){record_delimiter}
-("relationship"{tuple_delimiter}"Jordan"{tuple_delimiter}"Cruz"{tuple_delimiter}"Jordan 对发现的承诺是对 Cruz 控制和秩序愿景的反抗。"{tuple_delimiter}"意识形态冲突, 反抗"{tuple_delimiter}5){record_delimiter}
-("relationship"{tuple_delimiter}"Taylor"{tuple_delimiter}"The Device"{tuple_delimiter}"Taylor 对设备表示敬畏，表明其重要性和潜在影响。"{tuple_delimiter}"敬畏, 技术重要性"{tuple_delimiter}9){record_delimiter}
-("content_keywords"{tuple_delimiter}"权力动态, 意识形态冲突, 发现, 反抗"){completion_delimiter}
-#############################""",
-    """示例 2:
-
-实体类型: [公司, 指数, 商品, 市场趋势, 经济政策, 生物]
-文本:
-```
-今天股市急剧下跌，科技巨头股价大幅下挫，全球科技指数在午盘交易中下跌了3.4%。分析师将抛售归因于投资者对利率上升和监管不确定性的担忧。
-
-受打击最严重的公司中，Nexon Technologies 在报告低于预期的季度收益后，其股价暴跌了7.8%。相比之下，受油价上涨推动，Omega Energy 股价小幅上涨了2.1%。
-
-与此同时，大宗商品市场情绪复杂。随着投资者寻求避险资产，黄金期货上涨了1.5%，达到每盎司2080美元。受供应限制和强劲需求支撑，原油价格继续上涨，攀升至每桶87.60美元。
-
-金融专家正密切关注美联储的下一步行动，因为对可能加息的猜测日益增加。即将发布的政策公告预计将影响投资者信心和整体市场稳定。
-```
-
-输出:
-("entity"{tuple_delimiter}"Global Tech Index"{tuple_delimiter}"index"{tuple_delimiter}"全球科技指数追踪主要科技股的表现，今日下跌了3.4%。"){record_delimiter}
-("entity"{tuple_delimiter}"Nexon Technologies"{tuple_delimiter}"company"{tuple_delimiter}"Nexon Technologies 是一家科技公司，其股票在公布令人失望的收益后下跌了7.8%。"){record_delimiter}
-("entity"{tuple_delimiter}"Omega Energy"{tuple_delimiter}"company"{tuple_delimiter}"Omega Energy 是一家能源公司，由于油价上涨，其股价上涨了2.1%。"){record_delimiter}
-("entity"{tuple_delimiter}"Gold Futures"{tuple_delimiter}"commodity"{tuple_delimiter}"黄金期货上涨了1.5%，表明投资者对避险资产的兴趣增加。"){record_delimiter}
-("entity"{tuple_delimiter}"Crude Oil"{tuple_delimiter}"commodity"{tuple_delimiter}"由于供应限制和强劲需求，原油价格上涨至每桶87.60美元。"){record_delimiter}
-("entity"{tuple_delimiter}"Market Selloff"{tuple_delimiter}"market_trend"{tuple_delimiter}"市场抛售指由于投资者对利率和监管的担忧导致股价大幅下跌。"){record_delimiter}
-("entity"{tuple_delimiter}"Federal Reserve Policy Announcement"{tuple_delimiter}"economic_policy"{tuple_delimiter}"美联储即将发布的政策公告预计将影响投资者信心和市场稳定。"){record_delimiter}
-("relationship"{tuple_delimiter}"Global Tech Index"{tuple_delimiter}"Market Selloff"{tuple_delimiter}"全球科技指数的下跌是受投资者担忧驱动的更广泛市场抛售的一部分。"{tuple_delimiter}"市场表现, 投资者情绪"{tuple_delimiter}9){record_delimiter}
-("relationship"{tuple_delimiter}"Nexon Technologies"{tuple_delimiter}"Global Tech Index"{tuple_delimiter}"Nexon Technologies 的股价下跌导致了全球科技指数的整体下跌。"{tuple_delimiter}"公司影响, 指数变动"{tuple_delimiter}8){record_delimiter}
-("relationship"{tuple_delimiter}"Gold Futures"{tuple_delimiter}"Market Selloff"{tuple_delimiter}"在市场抛售期间，随着投资者寻求避险资产，黄金价格上涨。"{tuple_delimiter}"市场反应, 避险投资"{tuple_delimiter}10){record_delimiter}
-("relationship"{tuple_delimiter}"Federal Reserve Policy Announcement"{tuple_delimiter}"Market Selloff"{tuple_delimiter}"对美联储政策变化的猜测导致了市场波动和投资者抛售。"{tuple_delimiter}"利率影响, 金融监管"{tuple_delimiter}7){record_delimiter}
-("content_keywords"{tuple_delimiter}"市场低迷, 投资者情绪, 大宗商品, 美联储, 股票表现"){completion_delimiter}
-#############################""",
-    """示例 3:
-
-实体类型: [经济政策, 运动员, 事件, 地点, 记录, 组织, 设备]
-文本:
-```
-在东京举行的世界田径锦标赛上，Noah Carter 使用尖端的碳纤维钉鞋打破了100米短跑记录。
-```
-
-输出:
-("entity"{tuple_delimiter}"World Athletics Championship"{tuple_delimiter}"event"{tuple_delimiter}"世界田径锦标赛是一项全球体育赛事，汇集了顶尖的田径运动员。"){record_delimiter}
-("entity"{tuple_delimiter}"Tokyo"{tuple_delimiter}"location"{tuple_delimiter}"东京是世界田径锦标赛的主办城市。"){record_delimiter}
-("entity"{tuple_delimiter}"Noah Carter"{tuple_delimiter}"athlete"{tuple_delimiter}"Noah Carter 是一名短跑运动员，在世界田径锦标赛上创造了新的100米短跑记录。"){record_delimiter}
-("entity"{tuple_delimiter}"100m Sprint Record"{tuple_delimiter}"record"{tuple_delimiter}"100米短跑记录是田径运动的一个基准，最近被 Noah Carter 打破。"){record_delimiter}
-("entity"{tuple_delimiter}"Carbon-Fiber Spikes"{tuple_delimiter}"equipment"{tuple_delimiter}"碳纤维钉鞋是先进的短跑鞋，可提供增强的速度和抓地力。"){record_delimiter}
-("entity"{tuple_delimiter}"World Athletics Federation"{tuple_delimiter}"organization"{tuple_delimiter}"世界田径联合会是负责监督世界田径锦标赛和记录验证的管理机构。"){record_delimiter}
-("relationship"{tuple_delimiter}"World Athletics Championship"{tuple_delimiter}"Tokyo"{tuple_delimiter}"世界田径锦标赛在东京举办。"{tuple_delimiter}"赛事地点, 国际比赛"{tuple_delimiter}8){record_delimiter}
-("relationship"{tuple_delimiter}"Noah Carter"{tuple_delimiter}"100m Sprint Record"{tuple_delimiter}"Noah Carter 在锦标赛上创造了新的100米短跑记录。"{tuple_delimiter}"运动员成就, 打破记录"{tuple_delimiter}10){record_delimiter}
-("relationship"{tuple_delimiter}"Noah Carter"{tuple_delimiter}"Carbon-Fiber Spikes"{tuple_delimiter}"Noah Carter 在比赛中使用了碳纤维钉鞋来提高表现。"{tuple_delimiter}"运动装备, 性能提升"{tuple_delimiter}7){record_delimiter}
-("relationship"{tuple_delimiter}"World Athletics Federation"{tuple_delimiter}"100m Sprint Record"{tuple_delimiter}"世界田径联合会负责验证和承认新的短跑记录。"{tuple_delimiter}"体育法规, 记录认证"{tuple_delimiter}9){record_delimiter}
-("content_keywords"{tuple_delimiter}"田径, 短跑, 打破记录, 体育科技, 比赛"){completion_delimiter}
+("entity"{tuple_delimiter}"韩梅梅"{tuple_delimiter}"人物"{tuple_delimiter}"韩梅梅是对话中的一个角色，她最近发现自己喜欢跳舞。"){record_delimiter}
+("entity"{tuple_delimiter}"跳舞"{tuple_delimiter}"爱好"{tuple_delimiter}"跳舞是韩梅梅最近发现并喜欢上的一种爱好。"){record_delimiter}
+("relationship"{tuple_delimiter}"韩梅梅"{tuple_delimiter}"喜欢"{tuple_delimiter}"跳舞"{tuple_delimiter}"当前爱好"{tuple_delimiter}8){record_delimiter}
+("content_keywords"{tuple_delimiter}"韩梅梅, 跳舞, 爱好"){completion_delimiter}
 #############################""",
 ]
 

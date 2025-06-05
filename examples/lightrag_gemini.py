@@ -8,7 +8,7 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 from lightrag.utils import EmbeddingFunc
-from lightrag import LightRAG, QueryParam
+from lightrag import LightRAG
 from lightrag.kg.shared_storage import initialize_pipeline_status
 from lightrag.llm.siliconcloud import siliconcloud_embedding
 from lightrag.utils import setup_logger
@@ -85,7 +85,7 @@ async def test_funcs():
 async def initialize_rag():
     rag = LightRAG(
         working_dir=WORKING_DIR,
-        entity_extract_max_gleaning=1,
+        entity_extract_max_gleaning=0,
         enable_llm_cache=True,
         enable_llm_cache_for_entity_extract=True,
         embedding_cache_config={"enabled": True, "similarity_threshold": 0.90},
@@ -152,8 +152,8 @@ def main():
     # with open("./ragtest/lilei/lilei_1.txt", "r") as f:
     #     rag.insert(f.read(), file_paths=["./ragtest/lilei/lilei_1.txt"])
 
-    # with open("./ragtest/lilei/lilei_1.txt", "r", encoding="utf-8") as f:
-    #     rag.insert(f.read())
+    with open("./ragtest/lilei/lilei_11.txt", "r", encoding="utf-8") as f:
+        rag.insert(f.read())
 
     # 添加关系推理
     # asyncio.run(rag.infer_new_relationships())
@@ -178,14 +178,14 @@ def main():
     #     rag.query(_question, param=QueryParam(mode="global"))
     # )
 
-    print(
-        rag.query(
-            _question,
-            param=QueryParam(
-                mode="hybrid", only_need_context=False, only_need_prompt=False, top_k=60
-            ),
-        )
-    )
+    # print(
+    #     rag.query(
+    #         _question,
+    #         param=QueryParam(
+    #             mode="hybrid", only_need_context=False, only_need_prompt=False, top_k=60
+    #         ),
+    #     )
+    # )
 
 
 if __name__ == "__main__":

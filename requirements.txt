@@ -1,6 +1,7 @@
 aiohttp
 configparser
 future
+mcp>=1.8.1
 
 # Additional Packages for export Functionality
 pandas>=2.0.0
@@ -19,4 +20,6 @@ tenacity
 
 # LLM packages
 tiktoken
+
+websockets>=11.0.3
 xlsxwriter>=3.1.0

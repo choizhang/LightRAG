@@ -120,7 +120,7 @@ class LightRAG:
     # Entity extraction
     # ---
 
-    entity_extract_max_gleaning: int = field(default=1)
+    entity_extract_max_gleaning: int = field(default=0)
     """Maximum number of entity extraction attempts for ambiguous content."""
 
     summary_to_max_tokens: int = field(
